@@ -101,7 +101,7 @@
                 "post": "Post",
                 "service": "Service",
                 "state": "State",
-                "story": "Story",
+                "stories": "Stories",
                 "video": "Video"
             },
             "default_value": false,

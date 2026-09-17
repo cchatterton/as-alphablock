@@ -1,16 +1,16 @@
-Initial standalone release of AlphaSys AlphaBlock, based on the supplied template version 3.1.
+Corrects the AlphaBlock post type dropdown from `story` / Story to `stories` / Stories, matching the supplied site's registered post type key.
 
-The four source files are preserved unchanged. Includes ACF field/JSON synchronisation, post and family queries, runtime overrides, and Magic Card rendering with desktop/mobile layout settings.
+### Installation and existing blocks
 
-### Installation
+Extract `as-alphablock-3.1.1.zip` into your active theme's `blocks/` directory, replacing the existing AlphaBlock files. Sync the ACF field group from local JSON if required.
 
-Extract `as-alphablock-3.1.0.zip` into your active theme’s `blocks/` directory. The ZIP contains one `alphablock/` folder. This is a theme component, not a WordPress plugin upload.
+For existing affected blocks, change `"post_type": "story"` to `"post_type": "stories"` and save the page. This release does not migrate saved content or rename post types.
 
-Requires ACF PRO, the existing AlphaSys block loader, `block_classes()`, the Magic Card framework and card templates, and theme layout assets. The supplied block metadata references `style.css`, which was absent from the source archive.
+This remains a theme component requiring the shared AlphaSys block loader, ACF PRO, `block_classes()`, Magic Card and theme layout assets. The referenced `style.css` was not provided and remains external.
 
 ### Validation
 
-- PHP syntax checks passed for both PHP files.
-- Both JSON files parsed successfully.
-- Packaged block files verified byte-for-byte against the supplied archive.
+- Both JSON files parsed successfully; the Stories choice maps to `stories`.
+- Both PHP files pass syntax checks and remain unchanged from v3.1.0.
+- Release ZIP contents match the repository's four block source files.
 - No live WordPress integration testing performed.

@@ -4,16 +4,20 @@ AlphaSys’s ACF-based WordPress block for querying posts and rendering them thr
 
 ## Release
 
-The initial repository release is **v3.1.0**, corresponding to the supplied template version **3.1**. The four block source files are preserved unchanged from the supplied AlphaBlock archive.
+The current repository release is **v3.1.1**. It corrects the Stories dropdown choice to use the registered post type key `stories`. The initial v3.1.0 release preserved the supplied template version 3.1 unchanged.
 
 ## Installation
 
-1. Download `as-alphablock-3.1.0.zip` from the GitHub release.
+1. Download `as-alphablock-3.1.1.zip` from the GitHub release.
 2. Extract its `alphablock/` folder into your active theme’s `blocks/` directory.
 3. Use the existing AlphaSys theme framework to load ACF JSON and register `blocks/*/block.json`.
 4. Select a Card and configure AlphaBlock in the block editor.
 
 This is a theme block component, not an independently installable WordPress plugin.
+
+### Updating existing Story blocks
+
+For a site whose registered post type key is `stories`, change existing block JSON from `"post_type": "story"` to `"post_type": "stories"`, then save the page. This release changes the dropdown choice; it does not migrate saved blocks or rename registered post types. If the old dropdown remains, check whether the stored ACF field group needs syncing from the updated local JSON. Do not use the one-off hard-reset snippet to perform this update.
 
 ## Dependencies
 
