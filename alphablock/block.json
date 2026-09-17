@@ -1,0 +1,32 @@
+{
+  "$schema": "https://advancedcustomfields.com/schemas/json/main/block.json",
+  "apiVersion": 3,
+  "name": "acf/alphablock",
+  "title": "AlphaBlock",
+  "description": "Query Posts and show them as Cards",
+  "style": "file:./style.css",
+  "editorStyle": "file:./style.css",
+  "category": "formatting",
+  "icon": "embed-generic",
+  "keywords": ["alpha", "block", "alphablock"],
+  "acf": {
+    "blockVersion": 3,
+    "mode": "preview",
+    "renderTemplate": "template.php",
+    "validate": true,
+    "hideFieldsInSidebar": true,
+    "expandedEditorButtonText": "Edit AlphaBlock"
+  },
+  "supports": {
+    "align": false,
+    "mode": false
+  },
+  "example": {
+    "attributes": {
+      "mode": "preview",
+      "data": {
+        "row": 123
+      }
+    }
+  }
+}

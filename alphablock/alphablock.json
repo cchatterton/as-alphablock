@@ -1,0 +1,631 @@
+{
+    "key": "group_alphablock",
+    "title": "AlphaBlock",
+    "fields": [
+        {
+            "key": "field_tab_block_title",
+            "label": "Block Title",
+            "name": "",
+            "type": "tab",
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "top",
+            "endpoint": 0,
+            "selected": 0
+        },
+        {
+            "key": "field_header_level",
+            "label": "Header Level",
+            "name": "header_level",
+            "type": "range",
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "default_value": 2,
+            "min": 1,
+            "max": 4,
+            "step": ""
+        },
+        {
+            "key": "field_header",
+            "label": "Header",
+            "name": "header",
+            "type": "text",
+            "wrapper": {
+                "width": "80",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_tab_post_query",
+            "label": "Post Query",
+            "name": "",
+            "type": "tab",
+            "wrapper": {
+                "width": "25",
+                "class": "",
+                "id": ""
+            },
+            "placement": "top",
+            "endpoint": 0,
+            "selected": 0
+        },
+        {
+            "key": "field_total_posts",
+            "label": "Total Posts",
+            "name": "total_posts",
+            "type": "range",
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "default_value": 3,
+            "min": -1,
+            "max": 24,
+            "step": ""
+        },
+        {
+            "key": "field_post_type",
+            "label": "Post type",
+            "name": "post_type",
+            "type": "select",
+            "wrapper": {
+                "width": "17",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "about": "About-us",
+                "archetype": "Archetype",
+                "article": "Article",
+                "demo": "Demo",
+                "event": "Event",
+                "faq": "FAQ",
+                "headheart": "Head/Heart",
+                "interest": "Interest",
+                "number": "Number",
+                "page": "Page",
+                "people": "People",
+                "post": "Post",
+                "service": "Service",
+                "state": "State",
+                "story": "Story",
+                "video": "Video"
+            },
+            "default_value": false,
+            "return_format": "value",
+            "multiple": 0,
+            "allow_null": 1,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": ""
+        },
+        {
+            "key": "field_order_by",
+            "label": "Order by",
+            "name": "order_by",
+            "type": "select",
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "title": "Title",
+                "date": "Publish date",
+                "menu_order": "Menu order",
+                "rand": "Random"
+            },
+            "default_value": false,
+            "return_format": "value",
+            "multiple": 0,
+            "allow_null": 0,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": ""
+        },
+        {
+            "key": "field_sort_order",
+            "label": "Sort Order",
+            "name": "sort_order",
+            "type": "select",
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "ASC": "ASC",
+                "DESC": "DESC"
+            },
+            "default_value": false,
+            "return_format": "value",
+            "multiple": 0,
+            "allow_null": 0,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": ""
+        },
+        {
+            "key": "field_query_logic_q",
+            "label": "Query Logic?",
+            "name": "query_logic",
+            "type": "select",
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "None": "None",
+                "All": "All",
+                "Any": "Any",
+                "Build": "Build",
+                "Family": "Family"
+            },
+            "default_value": false,
+            "return_format": "value",
+            "multiple": 0,
+            "allow_null": 0,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": ""
+        },
+        {
+            "key": "field_tab_query_logic",
+            "label": "Query Logic",
+            "name": "",
+            "type": "tab",
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_query_logic_q",
+                        "operator": "!=",
+                        "value": "None"
+                    },
+                    {
+                        "field": "field_query_logic_q",
+                        "operator": "!=",
+                        "value": "Family"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "75",
+                "class": "",
+                "id": ""
+            },
+            "placement": "top",
+            "endpoint": 0,
+            "selected": 0
+        },
+        {
+            "key": "field_filters",
+            "label": "Filters",
+            "name": "filters",
+            "type": "repeater",
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "layout": "table",
+            "pagination": 0,
+            "min": 0,
+            "max": 0,
+            "collapsed": "",
+            "button_label": "Add Row",
+            "rows_per_page": 20,
+            "sub_fields": [
+                {
+                    "key": "field_filters_filter_type",
+                    "label": "Filter Type",
+                    "name": "filter_type",
+                    "type": "select",
+                    "choices": {
+                        "CPT": "Related Post",
+                        "Meta": "Meta"
+                    },
+                    "default_value": false,
+                    "return_format": "value",
+                    "multiple": 0,
+                    "allow_null": 0,
+                    "ui": 0,
+                    "ajax": 0,
+                    "placeholder": ""
+                },
+                {
+                    "key": "field_filters_key",
+                    "label": "Key",
+                    "name": "key",
+                    "type": "text",
+                    "default_value": "",
+                    "maxlength": "",
+                    "placeholder": "",
+                    "prepend": "",
+                    "append": ""
+                },
+                {
+                    "key": "field_filters_compare_as",
+                    "label": "Compare as",
+                    "name": "compare_as",
+                    "type": "select",
+                    "choices": {
+                        "=": "=",
+                        "!=": "!=",
+                        ">": ">",
+                        "<": "<",
+                        ">=": ">=",
+                        "<=": "<=",
+                        "LIKE": "LIKE",
+                        "NOT LIKE": "NOT LIKE"
+                    },
+                    "default_value": false,
+                    "return_format": "value",
+                    "multiple": 0,
+                    "allow_null": 0,
+                    "ui": 0,
+                    "ajax": 0,
+                    "placeholder": ""
+                },
+                {
+                    "key": "field_filters_value",
+                    "label": "Value",
+                    "name": "value",
+                    "type": "text",
+                    "default_value": "",
+                    "maxlength": "",
+                    "placeholder": "",
+                    "prepend": "",
+                    "append": ""
+                }
+            ]
+        },
+        {
+            "key": "field_tab_show_posts",
+            "label": "Show Posts",
+            "name": "",
+            "type": "tab",
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "top",
+            "endpoint": 0,
+            "selected": 0
+        },
+        {
+            "key": "field_posts_per_row",
+            "label": "Posts per row",
+            "name": "posts_per_row",
+            "type": "range",
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "default_value": 3,
+            "min": 1,
+            "max": 12,
+            "step": ""
+        },
+        {
+            "key": "field_card",
+            "label": "Card",
+            "name": "card",
+            "type": "post_object",
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "post_type": [
+                "card"
+            ],
+            "post_status": [
+                "publish"
+            ],
+            "return_format": "id",
+            "multiple": 0,
+            "allow_null": 0,
+            "ui": 1,
+            "bidirectional": 0,
+            "bidirectional_target": []
+        },
+        {
+            "key": "field_layout",
+            "label": "Layout",
+            "name": "layout",
+            "type": "select",
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "Wrap": "Wrap",
+                "Swipe": "Swipe",
+                "Carousel": "Carousel"
+            },
+            "default_value": false,
+            "return_format": "value",
+            "multiple": 0,
+            "allow_null": 1,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": ""
+        },
+        {
+            "key": "field_mobile_layout",
+            "label": "Mobile Layout",
+            "name": "mobile_layout",
+            "type": "select",
+            "wrapper": {
+                "width": "20",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "Wrap": "Wrap",
+                "Swipe": "Swipe",
+                "Carousel": "Carousel"
+            },
+            "default_value": false,
+            "return_format": "value",
+            "multiple": 0,
+            "allow_null": 1,
+            "ui": 0,
+            "ajax": 0,
+            "placeholder": ""
+        },
+        {
+            "key": "field_show_links",
+            "label": "Show Links",
+            "name": "show_links",
+            "type": "checkbox",
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_layout",
+                        "operator": "==",
+                        "value": "Wrap"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "40",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "Show All": "Show All",
+                "Show More": "Show More"
+            },
+            "default_value": [],
+            "return_format": "value",
+            "allow_custom": 0,
+            "layout": "horizontal",
+            "toggle": 0,
+            "save_custom": 0,
+            "custom_choice_button_text": "Add new choice"
+        },
+        {
+            "key": "field_tab_family",
+            "label": "Family",
+            "name": "",
+            "type": "tab",
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "top",
+            "endpoint": 0,
+            "selected": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_query_logic_q",
+                        "operator": "==",
+                        "value": "Family"
+                    }
+                ]
+            ]
+        },
+        {
+            "key": "field_whose_family",
+            "label": "Whose family?",
+            "name": "whose_family",
+            "type": "text",
+            "instructions": "Use %me% for the current page, 0 for the hierarchy root, or enter a post ID.",
+            "wrapper": {
+                "width": "25",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "%me%",
+            "maxlength": "",
+            "placeholder": "%me%",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_family",
+            "label": "Family",
+            "name": "family",
+            "type": "checkbox",
+            "wrapper": {
+                "width": "75",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "parents": "Show Parents",
+                "children": "Show Children",
+                "uncles_aunties": "Show Uncles/Aunties",
+                "siblings": "Show Siblings",
+                "grandparents": "Show Grandparents"
+            },
+            "layout": "horizontal",
+            "return_format": "value",
+            "default_value": []
+        },
+        {
+            "key": "field_tab_includes",
+            "label": "Includes",
+            "name": "",
+            "type": "tab",
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "top",
+            "endpoint": 0,
+            "selected": 0
+        },
+        {
+            "key": "field_include_posts",
+            "label": "Include Posts",
+            "name": "include_posts",
+            "type": "relationship",
+            "wrapper": {
+                "width": "100",
+                "class": "",
+                "id": ""
+            },
+            "post_type": [],
+            "filters": [
+                "search",
+                "post_type"
+            ],
+            "return_format": "id",
+            "min": 0,
+            "max": 0,
+            "elements": [
+                "featured_image"
+            ],
+            "ui": 1
+        },
+        {
+            "key": "field_tab_excludes",
+            "label": "Excludes",
+            "name": "",
+            "type": "tab",
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "top",
+            "endpoint": 0,
+            "selected": 0
+        },
+        {
+            "key": "field_exclude_posts",
+            "label": "Exclude Posts",
+            "name": "exclude_posts",
+            "type": "relationship",
+            "wrapper": {
+                "width": "100",
+                "class": "",
+                "id": ""
+            },
+            "post_type": [],
+            "filters": [
+                "search",
+                "post_type"
+            ],
+            "return_format": "id",
+            "min": 0,
+            "max": 0,
+            "elements": [
+                "featured_image"
+            ],
+            "ui": 1
+        },
+        {
+            "key": "field_tab_prompt",
+            "label": "Prompt",
+            "name": "",
+            "type": "tab",
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "top",
+            "endpoint": 0,
+            "selected": 0
+        },
+        {
+            "key": "field_prompt",
+            "label": "Prompt",
+            "name": "prompt",
+            "type": "textarea",
+            "wrapper": {
+                "width": "100",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "rows": 12,
+            "placeholder": "",
+            "new_lines": ""
+        },
+        {
+            "key": "field_tab_json",
+            "label": "JSON",
+            "name": "",
+            "type": "tab",
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "top",
+            "endpoint": 0,
+            "selected": 0
+        },
+        {
+            "key": "field_json",
+            "label": "JSON",
+            "name": "json",
+            "type": "textarea",
+            "wrapper": {
+                "width": "100",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "rows": 12,
+            "placeholder": "",
+            "new_lines": ""
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "block",
+                "operator": "==",
+                "value": "acf/alphablock"
+            }
+        ]
+    ],
+    "active": true
+}
