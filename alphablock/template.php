@@ -3,10 +3,11 @@
  * File: AlphaBlock
  *
  * @subpackage Blocks
- * @version    3.1.2
+ * @version    3.1.3
  * @author     Chris Chatterton
  *
  * Release Notes:
+ * 3.1.3 20261022: Render the posts selected by the owning FAQ's relates_to field, across post types.
  * 3.1.2 20261022 CC: Match relates_to relationship fields against the owning post ID for Meta %me% filters.
  * 3.1  20260828 CC: Added whose_family support for %me%, hierarchy root 0 and explicit post IDs.
  * 3.0  20260827 CC: Family queries always use the owning page's post type.
@@ -784,19 +785,33 @@ switch (
 					$key_1 === 'relates_to' &&
 					$condition['value'] === '%me%'
 				) {
-					/* ACF stores multiple relationship IDs as quoted strings
-					 * inside a serialized array. Use the resolved owning post ID
-					 * rather than the global post or its slug.
+					/* The block is on the FAQ. Read its selected relationship
+					 * IDs and query those posts, which may have different types.
 					 */
-					if ($alphablock_post_id > 0) {
-						$args['meta_query'][] = [
-							'key'     => $key_1,
-							'value'   => '"' . $alphablock_post_id . '"',
-							'compare' => 'LIKE',
-						];
-					} else {
-						$args['post__in'] = [0];
-					}
+					$related_ids = $alphablock_post_id > 0
+						? wp_parse_id_list(
+							get_post_meta(
+								$alphablock_post_id,
+								$key_1,
+								true
+							)
+						)
+						: [];
+
+					/* An empty post__in array would match every post. */
+					$args['post__in'] = $related_ids ?: [0];
+					$args['post_type'] = $related_ids
+						? array_values(
+							array_unique(
+								array_filter(
+									array_map(
+										'get_post_type',
+										$related_ids
+									)
+								)
+							)
+						)
+						: 'any';
 				} else {
 						$args['meta_query'][] = [
 							'key'     => $key_1,
@@ -806,6 +821,14 @@ switch (
 				}
 				}
 			}
+		}
+
+		/* A relation alone needs no meta query. */
+		if (
+			isset($args['meta_query']) &&
+			count($args['meta_query']) === 1
+		) {
+			unset($args['meta_query']);
 		}
 
 		$posts = get_posts($args);

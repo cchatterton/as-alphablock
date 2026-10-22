@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.1.3 — 2026-10-22
+
+- Correct the direction of the `relates_to` filter: when the block is on an FAQ, read that FAQ's selected post IDs and render those posts.
+- Query across post types for this filter, since selected content may be a page or another custom post type. An empty relationship returns no cards.
+- Existing AlphaBlock JSON does not need to change. This corrects the reversed lookup introduced in v3.1.2.
+
 ## 3.1.2 — 2026-10-22
 
 - Resolve `relates_to` Meta filters with `"value": "%me%"` against the owning post ID.
