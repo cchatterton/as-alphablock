@@ -3,10 +3,11 @@
  * File: AlphaBlock
  *
  * @subpackage Blocks
- * @version    3.1.3
+ * @version    3.1.4
  * @author     Chris Chatterton
  *
  * Release Notes:
+ * 3.1.4 20261022: Treat a null post_type (- Select -) as WordPress any for all queries.
  * 3.1.3 20261022: Render the posts selected by the owning FAQ's relates_to field, across post types.
  * 3.1.2 20261022 CC: Match relates_to relationship fields against the owning post ID for Meta %me% filters.
  * 3.1  20260828 CC: Added whose_family support for %me%, hierarchy root 0 and explicit post IDs.
@@ -66,7 +67,7 @@ $block_defaults = [
 	'header_level'  => 2,
 	'header'        => '',
 	'total_posts'   => 3,
-	'post_type'     => 'post',
+	'post_type'     => null,
 	'order_by'      => 'date',
 	'sort_order'    => 'ASC',
 	'query_logic'   => 'None',
@@ -586,46 +587,14 @@ if ($block_values['order_by'] === 'rand') {
 	$block_values['total_posts'] = -1;
 }
 
-$is_family_query =
-	strtolower(
-		(string) $block_values['query_logic']
-	) === 'family';
-
-/*
- * whose_family selects the hierarchy reference. post_type independently
- * selects the type of content returned, allowing cross-type family queries.
- */
+/* whose_family selects the hierarchy reference for Family queries. */
 $family_reference_id =
 	$block_values['whose_family'] === '%me%'
 		? $alphablock_post_id
 		: (int) $block_values['whose_family'];
 
-$family_reference_type =
-	$family_reference_id > 0
-		? get_post_type($family_reference_id)
-		: false;
-
-if ($is_family_query) {
-	$query_post_type =
-		!empty($block_values['post_type'])
-			? $block_values['post_type']
-			: (
-				$family_reference_type
-					?: $alphablock_post_type
-			);
-} else {
-	$query_post_type =
-		!empty($block_values['post_type'])
-			? $block_values['post_type']
-			: $alphablock_post_type;
-}
-
-/*
- * Safe fallback when no owning post context could be resolved.
- */
-if (!$query_post_type) {
-	$query_post_type = 'post';
-}
+/* The - Select - choice stores null and means any post type. */
+$query_post_type = $block_values['post_type'] ?: 'any';
 
 $args = [
 	'posts_per_page'   =>

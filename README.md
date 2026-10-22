@@ -4,11 +4,11 @@ AlphaSys’s ACF-based WordPress block for querying posts and rendering them thr
 
 ## Release
 
-The current repository release is **v3.1.3**. A Meta filter on `relates_to` with `"value": "%me%"` now renders the posts selected in the FAQ containing the block. This corrects the reversed lookup in v3.1.2.
+The current repository release is **v3.1.4**. The Post type field's `- Select -` value (`"post_type": null` in JSON) now means WordPress `any` for all query modes. A Meta filter on `relates_to` with `"value": "%me%"` renders the posts selected in the FAQ containing the block.
 
 ## Installation
 
-1. Download `as-alphablock-3.1.3.zip` from the GitHub release.
+1. Download `as-alphablock-3.1.4.zip` from the GitHub release.
 2. Extract its `alphablock/` folder into your active theme’s `blocks/` directory.
 3. Use the existing AlphaSys theme framework to load ACF JSON and register `blocks/*/block.json`.
 4. Select a Card and configure AlphaBlock in the block editor.
@@ -17,7 +17,7 @@ This is a theme block component, not an independently installable WordPress plug
 
 ### Related FAQs
 
-For an FAQ's multi-select ACF `relates_to` field, use `query_logic` of `Any` or `All` and a Meta filter with `key` set to `relates_to` and `value` set to `%me%`. The renderer reads the IDs selected on that FAQ and renders those posts. The existing `compare_as` value can remain `=`; for this filter, the configured `post_type` is ignored so selected posts of different types can appear. Ordering, limits, exclusions and Card selection still apply.
+For an FAQ's multi-select ACF `relates_to` field, use `query_logic` of `Any` or `All` and a Meta filter with `key` set to `relates_to` and `value` set to `%me%`. The renderer reads the IDs selected on that FAQ and renders those posts. The existing `compare_as` value can remain `=`. Set `post_type` to `null` to represent `- Select -`; for this relationship filter, the selected posts' actual types are used. Ordering, limits, exclusions and Card selection still apply.
 
 ### Updating existing Story blocks
 

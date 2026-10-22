@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.1.4 — 2026-10-22
+
+- Treat the Post type field's `- Select -` / JSON `null` value as WordPress `any` for every AlphaBlock query mode.
+- Keep explicit post type choices as filters. The `relates_to` / `%me%` filter continues to use the selected posts' actual types.
+
 ## 3.1.3 — 2026-10-22
 
 - Correct the direction of the `relates_to` filter: when the block is on an FAQ, read that FAQ's selected post IDs and render those posts.
