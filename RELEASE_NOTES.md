@@ -1,16 +1,13 @@
-Corrects the AlphaBlock post type dropdown from `story` / Story to `stories` / Stories, matching the supplied site's registered post type key.
+Fixes Meta filters using `relates_to` and `%me%` so they find FAQ posts whose ACF relationship field includes the page containing AlphaBlock. The existing block JSON can stay unchanged, including `"compare_as": "="`.
 
-### Installation and existing blocks
+### Installation
 
-Extract `as-alphablock-3.1.1.zip` into your active theme's `blocks/` directory, replacing the existing AlphaBlock files. Sync the ACF field group from local JSON if required.
-
-For existing affected blocks, change `"post_type": "story"` to `"post_type": "stories"` and save the page. This release does not migrate saved content or rename post types.
-
-This remains a theme component requiring the shared AlphaSys block loader, ACF PRO, `block_classes()`, Magic Card and theme layout assets. The referenced `style.css` was not provided and remains external.
+Extract `as-alphablock-3.1.2.zip` into your active theme's `blocks/` directory, replacing the existing AlphaBlock files. This is a theme component requiring the shared AlphaSys block loader, ACF PRO, `block_classes()`, Magic Card and theme layout assets.
 
 ### Validation
 
-- Both JSON files parsed successfully; the Stories choice maps to `stories`.
-- Both PHP files pass syntax checks and remain unchanged from v3.1.0.
-- Release ZIP contents match the repository's four block source files.
-- No live WordPress integration testing performed.
+- PHP syntax checks pass for both block PHP files.
+- Both block JSON files parse successfully.
+- The generated relationship Meta query uses the owning post ID as a quoted `LIKE` value; other Meta filters retain their existing comparison.
+- The release ZIP contains the four block source files.
+- No live WordPress integration testing was available.

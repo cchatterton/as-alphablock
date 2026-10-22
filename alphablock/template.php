@@ -3,10 +3,11 @@
  * File: AlphaBlock
  *
  * @subpackage Blocks
- * @version    3.1
+ * @version    3.1.2
  * @author     Chris Chatterton
  *
  * Release Notes:
+ * 3.1.2 20261022 CC: Match relates_to relationship fields against the owning post ID for Meta %me% filters.
  * 3.1  20260828 CC: Added whose_family support for %me%, hierarchy root 0 and explicit post IDs.
  * 3.0  20260827 CC: Family queries always use the owning page's post type.
  * 2.9  20260827 CC: Preserve a null post_type so Family queries inherit the owning post type.
@@ -779,11 +780,30 @@ switch (
 				} elseif (
 					$condition['filter_type'] === 'Meta'
 				) {
-					$args['meta_query'][] = [
-						'key'     => $key_1,
-						'value'   => $value,
-						'compare' => $compare,
-					];
+				if (
+					$key_1 === 'relates_to' &&
+					$condition['value'] === '%me%'
+				) {
+					/* ACF stores multiple relationship IDs as quoted strings
+					 * inside a serialized array. Use the resolved owning post ID
+					 * rather than the global post or its slug.
+					 */
+					if ($alphablock_post_id > 0) {
+						$args['meta_query'][] = [
+							'key'     => $key_1,
+							'value'   => '"' . $alphablock_post_id . '"',
+							'compare' => 'LIKE',
+						];
+					} else {
+						$args['post__in'] = [0];
+					}
+				} else {
+						$args['meta_query'][] = [
+							'key'     => $key_1,
+							'value'   => $value,
+							'compare' => $compare,
+						];
+				}
 				}
 			}
 		}

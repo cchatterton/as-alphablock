@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.1.2 — 2026-10-22
+
+- Resolve `relates_to` Meta filters with `"value": "%me%"` against the owning post ID.
+- Match that ID inside ACF's serialized relationship field with a quoted `LIKE` value, so existing AlphaBlock JSON can display the related FAQ cards.
+- Keep other Meta filters and query settings unchanged.
+
 ## 3.1.1 — 2026-09-17
 
 - Correct the post type dropdown from `story` / Story to `stories` / Stories, matching the registered post type key shown in the supplied site configuration.

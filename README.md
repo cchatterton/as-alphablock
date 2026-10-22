@@ -4,16 +4,20 @@ AlphaSys’s ACF-based WordPress block for querying posts and rendering them thr
 
 ## Release
 
-The current repository release is **v3.1.1**. It corrects the Stories dropdown choice to use the registered post type key `stories`. The initial v3.1.0 release preserved the supplied template version 3.1 unchanged.
+The current repository release is **v3.1.2**. It lets a Meta filter on the ACF `relates_to` relationship field with `"value": "%me%"` find posts related to the page containing the block. The initial v3.1.0 release preserved the supplied template version 3.1 unchanged.
 
 ## Installation
 
-1. Download `as-alphablock-3.1.1.zip` from the GitHub release.
+1. Download `as-alphablock-3.1.2.zip` from the GitHub release.
 2. Extract its `alphablock/` folder into your active theme’s `blocks/` directory.
 3. Use the existing AlphaSys theme framework to load ACF JSON and register `blocks/*/block.json`.
 4. Select a Card and configure AlphaBlock in the block editor.
 
 This is a theme block component, not an independently installable WordPress plugin.
+
+### Related FAQs
+
+For an FAQ's multi-select ACF `relates_to` field, set `post_type` to `faq`, `query_logic` to `Any` or `All`, and add a Meta filter with `key` set to `relates_to` and `value` set to `%me%`. Existing blocks may keep `compare_as` set to `=`; the renderer uses a quoted ID and `LIKE` for this relationship filter. The selected FAQ cards are ordered and limited by the other block settings.
 
 ### Updating existing Story blocks
 
