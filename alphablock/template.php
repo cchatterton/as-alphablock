@@ -3,10 +3,11 @@
  * File: AlphaBlock
  *
  * @subpackage Blocks
- * @version    3.1.5
+ * @version    3.1.6
  * @author     Chris Chatterton
  *
  * Release Notes:
+ * 3.1.6 20261023: Compare related FAQ IDs after WordPress decodes their stored meta values.
  * 3.1.5 20261023: Find FAQs whose relates_to relationship contains the owning post for CPT %me% filters.
  * 3.1.4 20261022: Treat a null post_type (- Select -) as WordPress any for all queries.
  * 3.1.3 20261022: Render the posts selected by the owning FAQ's relates_to field, across post types.
@@ -730,15 +731,46 @@ switch (
 						true
 					)
 				) {
-					/* Find posts whose ACF relationship contains this page.
+					/* Read each candidate's relationship through WordPress so
+					 * serialized strings, integers and separate meta rows work.
 					 * Accept related_to as an alias for the relates_to field.
 					 */
 					if ($alphablock_post_id > 0) {
-						$args['meta_query'][] = [
-							'key'     => 'relates_to',
-							'value'   => '"' . $alphablock_post_id . '"',
-							'compare' => 'LIKE',
-						];
+						$candidate_ids = get_posts([
+							'post_type'        => $args['post_type'],
+							'post_status'      => 'publish',
+							'posts_per_page'   => -1,
+							'fields'           => 'ids',
+							'meta_key'         => 'relates_to',
+							'suppress_filters' => false,
+						]);
+
+						if ($candidate_ids) {
+							update_meta_cache('post', $candidate_ids);
+						}
+
+						$matching_ids = [];
+
+						foreach ($candidate_ids as $candidate_id) {
+							$stored_values = get_post_meta(
+								$candidate_id,
+								'relates_to',
+								false
+							);
+
+							foreach ($stored_values as $stored_value) {
+								if (in_array(
+									$alphablock_post_id,
+									wp_parse_id_list($stored_value),
+									true
+								)) {
+									$matching_ids[] = (int) $candidate_id;
+									break;
+								}
+							}
+						}
+
+						$args['post__in'] = $matching_ids ?: [0];
 					} else {
 						$args['post__in'] = [0];
 					}

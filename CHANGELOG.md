@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.1.6 — 2026-10-23
+
+- Fix the reverse FAQ lookup to compare IDs returned by WordPress from each FAQ's `relates_to` meta, rather than assuming one serialized string format.
+- Support relationship values stored as serialized arrays of integer or string IDs and as separate meta rows. Compare whole IDs so `13196` does not match `113196`.
+- Keep the forward FAQ-to-content query unchanged.
+
 ## 3.1.5 — 2026-10-23
 
 - Add the reverse FAQ relationship query: a `CPT` filter with `relates_to` and `%me%` finds FAQs whose ACF relationship includes the page containing the block.
