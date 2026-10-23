@@ -3,12 +3,11 @@
  * File: AlphaBlock
  *
  * @subpackage Blocks
- * @version    3.1.6
+ * @version    3.1.7
  * @author     Chris Chatterton
  *
  * Release Notes:
- * 3.1.6 20261023: Compare related FAQ IDs after WordPress decodes their stored meta values.
- * 3.1.5 20261023: Find FAQs whose relates_to relationship contains the owning post for CPT %me% filters.
+ * 3.1.7 20261023: Restore 3.1.4 behavior and document the template sections.
  * 3.1.4 20261022: Treat a null post_type (- Select -) as WordPress any for all queries.
  * 3.1.3 20261022: Render the posts selected by the owning FAQ's relates_to field, across post types.
  * 3.1.2 20261022 CC: Match relates_to relationship fields against the owning post ID for Meta %me% filters.
@@ -50,6 +49,7 @@ if (isset($block['attrs']['data']['json'])) {
 $json_error   = '';
 $decoded_json = [];
 
+/* Accept either an already-decoded array or JSON text from the ACF field. */
 if (is_array($raw_json)) {
 	$decoded_json = $raw_json;
 } elseif (is_string($raw_json) && trim($raw_json) !== '') {
@@ -105,7 +105,10 @@ if (is_array($runtime_data)) {
 	}
 }
 
-/* Normalize the JSON values before the query and renderer use them. */
+/*
+ * Normalize configuration types and limits once. Later sections can then
+ * use these values without checking every possible editor input shape.
+ */
 $block_values['header_level'] = min(
 	6,
 	max(
@@ -199,6 +202,7 @@ $block_values['posts_per_row'] = max(
 	(int) $block_values['posts_per_row']
 );
 
+/* The selected Card post supplies the slug used by Magic_Card below. */
 $card_id = (int) $block_values['card'];
 
 $card_post =
@@ -211,6 +215,7 @@ $card_slug =
 		? $card_post->post_name
 		: '';
 
+/* The editor preview shows a summary and stops before running the query. */
 if ($is_preview) {
 	$preview_card =
 		$card_post instanceof WP_Post
@@ -298,6 +303,7 @@ $alphablock_attribute_context =
 
 $alphablock_admin_post_id = 0;
 
+/* In authenticated editor requests, recover the edited post ID if needed. */
 if (is_admin() && is_user_logged_in()) {
 	$alphablock_validate_admin_post_id =
 		static function ($value) {
@@ -424,6 +430,7 @@ if (is_admin() && is_user_logged_in()) {
 	}
 }
 
+/* Prefer block/ACF context, then the request, queried object and global post. */
 $alphablock_post_candidates = [
 	isset($post_id)
 		? absint($post_id)
@@ -527,6 +534,7 @@ if (!$alphablock_post_type) {
 	}
 }
 
+/* Give this block instance a stable wrapper ID and its theme classes. */
 $block_id =
 	isset($block['id'])
 		? esc_attr($block['id'])
@@ -535,7 +543,8 @@ $block_id =
 $block_classes = block_classes();
 
 /*
- * Wrapper markup.
+ * Build the section and optional heading now. The card list is inserted at
+ * %%content%% after the query has produced its post IDs.
  */
 ob_start();
 
@@ -581,10 +590,12 @@ echo "\n"
 $wrapper = ob_get_clean();
 
 /*
- * Query posts.
+ * Build the shared WordPress query. Query logic below can add meta clauses,
+ * post IDs or family relationships before get_posts() runs.
  */
 $total_posts = $block_values['total_posts'];
 
+/* Random mode fetches all candidates so PHP can shuffle before limiting. */
 if ($block_values['order_by'] === 'rand') {
 	$block_values['total_posts'] = -1;
 }
@@ -623,6 +634,7 @@ $args = [
 
 $posts = [];
 
+/* None/Build use the base query; All/Any add filters; Family uses hierarchy. */
 switch (
 	strtolower(
 		(string) $block_values['query_logic']
@@ -634,6 +646,7 @@ switch (
 
 	case 'all':
 	case 'any':
+		/* All combines filter clauses with AND; Any combines them with OR. */
 		$all_any =
 			strtolower(
 				(string) $block_values['query_logic']
@@ -668,10 +681,11 @@ switch (
 					continue;
 				}
 
-				$compare = strtoupper(
+			$compare = strtoupper(
 					(string) $condition['compare_as']
 				);
 
+			/* A key may be "meta_key&post_type" for a CPT lookup. */
 				if (
 					strpos(
 						(string) $condition['key'],
@@ -694,7 +708,8 @@ switch (
 					$key_2 = $key_1;
 				}
 
-				if (
+			/* For ordinary filters, %me% derives a slug from $post. */
+			if (
 					$condition['value'] === '%me%' &&
 					$post instanceof WP_Post
 				) {
@@ -722,62 +737,8 @@ switch (
 					$value = $condition['value'];
 				}
 
-				if ($condition['filter_type'] === 'CPT') {
-				if (
-					$condition['value'] === '%me%' &&
-					in_array(
-						$key_1,
-						['relates_to', 'related_to'],
-						true
-					)
-				) {
-					/* Read each candidate's relationship through WordPress so
-					 * serialized strings, integers and separate meta rows work.
-					 * Accept related_to as an alias for the relates_to field.
-					 */
-					if ($alphablock_post_id > 0) {
-						$candidate_ids = get_posts([
-							'post_type'        => $args['post_type'],
-							'post_status'      => 'publish',
-							'posts_per_page'   => -1,
-							'fields'           => 'ids',
-							'meta_key'         => 'relates_to',
-							'suppress_filters' => false,
-						]);
-
-						if ($candidate_ids) {
-							update_meta_cache('post', $candidate_ids);
-						}
-
-						$matching_ids = [];
-
-						foreach ($candidate_ids as $candidate_id) {
-							$stored_values = get_post_meta(
-								$candidate_id,
-								'relates_to',
-								false
-							);
-
-							foreach ($stored_values as $stored_value) {
-								if (in_array(
-									$alphablock_post_id,
-									wp_parse_id_list($stored_value),
-									true
-								)) {
-									$matching_ids[] = (int) $candidate_id;
-									break;
-								}
-							}
-						}
-
-						$args['post__in'] = $matching_ids ?: [0];
-					} else {
-						$args['post__in'] = [0];
-					}
-
-					continue;
-				}
-
+			/* CPT finds a post by slug, then compares its ID with meta. */
+			if ($condition['filter_type'] === 'CPT') {
 					$cpt_args = [
 						'name'        => $value,
 						'post_type'   => $key_2,
@@ -789,7 +750,8 @@ switch (
 					$post_object =
 						get_posts($cpt_args);
 
-					if (!empty($post_object)) {
+				/* A missing CPT lookup adds no clause to the main query. */
+				if (!empty($post_object)) {
 						$args['meta_query'][] = [
 							'key' => $key_1,
 
@@ -804,9 +766,10 @@ switch (
 							'compare' => $compare,
 						];
 					}
-				} elseif (
+			} elseif (
 					$condition['filter_type'] === 'Meta'
 				) {
+				/* Meta normally compares directly with the stored field. */
 				if (
 					$key_1 === 'relates_to' &&
 					$condition['value'] === '%me%'
@@ -861,6 +824,7 @@ switch (
 		break;
 
 	case 'build':
+		/* Build is currently the base query, without filter-building logic. */
 		$posts = get_posts($args);
 		break;
 
@@ -928,6 +892,7 @@ switch (
 			]);
 		};
 
+		/* Collect the requested relatives as post IDs. */
 		if (
 			in_array(
 				'parents',
@@ -1056,6 +1021,7 @@ switch (
 		break;
 }
 
+/* Apply the final order and total_posts limit to the retrieved posts. */
 if ($block_values['order_by'] === 'rand') {
 	shuffle($posts);
 }
@@ -1076,6 +1042,7 @@ $pids = array_map(
 	)
 );
 
+/* Explicit inclusions are appended after the limit and deduplicated. */
 if (!empty($block_values['include_posts'])) {
 	$pids = array_values(
 		array_unique(
@@ -1087,6 +1054,7 @@ if (!empty($block_values['include_posts'])) {
 	);
 }
 
+/* Convert desktop/mobile layout settings into CSS classes and row width. */
 $per = $block_values['posts_per_row'];
 
 $layout_lg = strtolower(
@@ -1126,6 +1094,7 @@ $style =
 	. esc_attr($per)
 	. ';"';
 
+/* Render each selected post with the chosen Magic Card template. */
 $one = '';
 
 if ($card_slug !== '') {
@@ -1144,6 +1113,7 @@ $needs_carousel =
 	$layout_sm === 'carousel' ||
 	$layout_lg === 'carousel';
 
+/* Carousel layouts repeat items so the theme can scroll continuously. */
 $duplicates = '';
 
 if (
@@ -1163,6 +1133,7 @@ if (
 	}
 }
 
+/* Replace the placeholder in the wrapper with the completed card list. */
 $content =
 	'<ul class="'
 	. esc_attr($classes)

@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.1.7 — 2026-10-23
+
+- Restore the executable template behavior from v3.1.4, removing the reverse FAQ lookups added in v3.1.5 and v3.1.6.
+- Add comments explaining the template's configuration, post context, query modes, filters, family selection and card rendering. No executable PHP logic differs from v3.1.4.
+- Keep `block.php` and both block JSON files unchanged.
+
 ## 3.1.6 — 2026-10-23
 
 - Fix the reverse FAQ lookup to compare IDs returned by WordPress from each FAQ's `relates_to` meta, rather than assuming one serialized string format.
