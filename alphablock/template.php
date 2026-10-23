@@ -3,10 +3,11 @@
  * File: AlphaBlock
  *
  * @subpackage Blocks
- * @version    3.1.4
+ * @version    3.1.5
  * @author     Chris Chatterton
  *
  * Release Notes:
+ * 3.1.5 20261023: Find FAQs whose relates_to relationship contains the owning post for CPT %me% filters.
  * 3.1.4 20261022: Treat a null post_type (- Select -) as WordPress any for all queries.
  * 3.1.3 20261022: Render the posts selected by the owning FAQ's relates_to field, across post types.
  * 3.1.2 20261022 CC: Match relates_to relationship fields against the owning post ID for Meta %me% filters.
@@ -721,6 +722,30 @@ switch (
 				}
 
 				if ($condition['filter_type'] === 'CPT') {
+				if (
+					$condition['value'] === '%me%' &&
+					in_array(
+						$key_1,
+						['relates_to', 'related_to'],
+						true
+					)
+				) {
+					/* Find posts whose ACF relationship contains this page.
+					 * Accept related_to as an alias for the relates_to field.
+					 */
+					if ($alphablock_post_id > 0) {
+						$args['meta_query'][] = [
+							'key'     => 'relates_to',
+							'value'   => '"' . $alphablock_post_id . '"',
+							'compare' => 'LIKE',
+						];
+					} else {
+						$args['post__in'] = [0];
+					}
+
+					continue;
+				}
+
 					$cpt_args = [
 						'name'        => $value,
 						'post_type'   => $key_2,

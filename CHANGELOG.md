@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.1.5 — 2026-10-23
+
+- Add the reverse FAQ relationship query: a `CPT` filter with `relates_to` and `%me%` finds FAQs whose ACF relationship includes the page containing the block.
+- Accept `related_to` as an alias for `relates_to` in this filter so existing block JSON works. Use a quoted post ID with `LIKE` to avoid partial ID matches.
+- Preserve the `Meta` filter behavior that renders posts selected on an FAQ.
+
 ## 3.1.4 — 2026-10-22
 
 - Treat the Post type field's `- Select -` / JSON `null` value as WordPress `any` for every AlphaBlock query mode.
