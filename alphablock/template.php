@@ -3,10 +3,11 @@
  * File: AlphaBlock
  *
  * @subpackage Blocks
- * @version    3.1.9
+ * @version    3.1.10
  * @author     Chris Chatterton
  *
  * Release Notes:
+ * 3.1.10 20261025: Replace %me% with an ID and %mine% with owner meta before queries.
  * 3.1.9 20261025: Process resolved and literal filter values identically.
  * 3.1.8 20261025: Resolve %me% by filter context before building queries.
  * 3.1.7 20261023: Restore 3.1.4 behavior and document the template sections.
@@ -544,27 +545,41 @@ if (!$alphablock_post_type) {
 
 /* ================================================================
  * 2. REPLACE TOKENS
- * Convert %me% to the owning post's ID or slug. Literal and token-supplied
- * values then pass through the same query code.
+ * Replace %me% with the owning post ID. In a filter, %mine% reads that
+ * filter's meta key on the owning post. Query code sees ordinary values.
  * ================================================================ */
 
-$alphablock_post_slug = $alphablock_post_id > 0
-	? (string) get_post_field('post_name', $alphablock_post_id)
-	: '';
-
-$block_values['whose_family'] =
-	$block_values['whose_family'] === '%me%'
-		? $alphablock_post_id
-		: (int) $block_values['whose_family'];
+$block_values['whose_family'] = (int) str_replace(
+	'%me%',
+	(string) $alphablock_post_id,
+	(string) $block_values['whose_family']
+);
 
 foreach ($block_values['filters'] as &$filter) {
-	if (!is_array($filter) || ($filter['value'] ?? null) !== '%me%') {
+	if (!is_array($filter) || !is_string($filter['value'] ?? null)) {
 		continue;
 	}
 
-	$filter['value'] = ($filter['filter_type'] ?? 'Meta') === 'CPT'
-		? $alphablock_post_slug
-		: $alphablock_post_id;
+	$mine = '';
+	if (strpos($filter['value'], '%mine%') !== false && $alphablock_post_id) {
+		/* For key "topic&page", read the "topic" meta field. */
+		$meta_key = trim(explode('&', (string) ($filter['key'] ?? ''), 2)[0]);
+		if ($meta_key !== '') {
+			$mine = get_post_meta($alphablock_post_id, $meta_key, true);
+			if (is_array($mine)) {
+				$mine = reset($mine);
+			}
+			if ($mine instanceof WP_Post) {
+				$mine = $mine->ID;
+			}
+		}
+	}
+
+	$filter['value'] = str_replace(
+		['%me%', '%mine%'],
+		[(string) $alphablock_post_id, is_scalar($mine) ? (string) $mine : ''],
+		$filter['value']
+	);
 }
 unset($filter);
 
@@ -704,6 +719,14 @@ foreach ($filters_to_resolve as $condition) {
 	$value = $condition['value'];
 
 	if ($filter_type === 'CPT') {
+		/* CPT lookup needs a slug; convert numeric IDs from any source. */
+		if (is_scalar($value) && ctype_digit((string) $value)) {
+			$slug = get_post_field('post_name', (int) $value);
+			if (is_string($slug) && $slug !== '') {
+				$value = $slug;
+			}
+		}
+
 		/* Resolve the slug to a post ID before building the main query. */
 		$matches = $value !== ''
 			? get_posts([

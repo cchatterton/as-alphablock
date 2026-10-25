@@ -4,11 +4,11 @@ AlphaSys’s ACF-based WordPress block for querying posts and rendering them thr
 
 ## Release
 
-The current repository release is **v3.1.9**. Filter tokens are replaced from the post containing the block before any filter queries run. Literal and resolved values then follow the same query path. The Post type field's `- Select -` value (`"post_type": null` in JSON) means WordPress `any`.
+The current repository release is **v3.1.10**. `%me%` is replaced with the ID of the post containing the block. `%mine%` reads a filter's meta key on that post. Both are replaced before filter queries run. The Post type field's `- Select -` value (`"post_type": null` in JSON) means WordPress `any`.
 
 ## Installation
 
-1. Download `as-alphablock-3.1.9.zip` from the GitHub release.
+1. Download `as-alphablock-3.1.10.zip` from the GitHub release.
 2. Extract its `alphablock/` folder into your active theme’s `blocks/` directory.
 3. Use the existing AlphaSys theme framework to load ACF JSON and register `blocks/*/block.json`.
 4. Select a Card and configure AlphaBlock in the block editor.
@@ -19,7 +19,7 @@ This is a theme block component, not an independently installable WordPress plug
 
 To show FAQs that refer to the page containing the block, set `post_type` to `faq`, `query_logic` to `All`, and add a Meta filter with `key: "relates_to"`, `compare_as: "="`, and `value: "%me%"`. The renderer resolves `%me%` to the containing page's ID, then queries FAQ metadata for that whole ID. It handles ACF relationships stored as serialized string or integer ID arrays, as well as a single ID. The key must be `relates_to`, matching the actual FAQ meta key.
 
-For other Meta filters, `%me%` also resolves to the containing post ID. For CPT filters, `%me%` resolves to its slug before the CPT lookup. `whose_family: "%me%"` resolves to its ID. These tokens are replaced before query construction, so a hardcoded ID or slug takes the same path as its `%me%` equivalent. Values come from the block's owning post, rather than the global `$post`.
+`%me%` always becomes the containing post ID, including in Meta, CPT and Family settings. In a filter, `%mine%` reads the filter's meta key on that post; if the field contains several values, it uses the first. For a key such as `topic&page`, it reads `topic`. A CPT lookup converts any numeric ID to a slug when it needs one, whether the ID came from a token or was hardcoded. Values come from the block's owning post, rather than the global `$post`.
 
 ### Updating existing Story blocks
 

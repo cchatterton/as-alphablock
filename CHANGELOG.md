@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.1.10 — 2026-10-25
+
+- Replace `%me%` with the owning post ID for every filter and Family reference before query processing.
+- Add `%mine%` for filter values. It reads the filter's meta key on the owning post and uses the first value when the field is an array.
+- Convert a numeric CPT filter value to a slug at CPT lookup time, whether it came from a token or was hardcoded.
+- Preserve the relationship Meta query and the existing None, All, Any, Build and Family query modes.
+
 ## 3.1.9 — 2026-10-25
 
 - Replace `%me%` in filter values immediately after resolving the post that contains the block.
