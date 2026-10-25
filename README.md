@@ -4,11 +4,11 @@ AlphaSys’s ACF-based WordPress block for querying posts and rendering them thr
 
 ## Release
 
-The current repository release is **v3.1.11**. The template has a separate replacement block for each token: `%me%` becomes the ID of the post containing the block, and `%mine%` reads a filter's meta key on that post. The Post type field's `- Select -` value (`"post_type": null` in JSON) means WordPress `any`.
+The current repository release is **v3.2.0**. The template runs in three phases: get raw block values and the owning post context, replace tokens, then process the values. The processing phase handles literal and token-derived values identically. The Post type field's `- Select -` value (`"post_type": null` in JSON) means WordPress `any`.
 
 ## Installation
 
-1. Download `as-alphablock-3.1.11.zip` from the GitHub release.
+1. Download `as-alphablock-3.2.0.zip` from the GitHub release.
 2. Extract its `alphablock/` folder into your active theme’s `blocks/` directory.
 3. Use the existing AlphaSys theme framework to load ACF JSON and register `blocks/*/block.json`.
 4. Select a Card and configure AlphaBlock in the block editor.
@@ -21,7 +21,7 @@ To show FAQs that refer to the page containing the block, set `post_type` to `fa
 
 `%me%` always becomes the containing post ID, including in Meta, CPT and Family settings. In a filter, `%mine%` reads the filter's meta key on that post; if the field contains several values, it uses the first. For a key such as `topic&page`, it reads `topic`. A CPT lookup converts any numeric ID to a slug when it needs one, whether the ID came from a token or was hardcoded. Values come from the block's owning post, rather than the global `$post`.
 
-To add another token, add a separate labeled replacement block under `2. REPLACE TOKENS` in `alphablock/template.php`. Each token block calculates its replacement and applies `str_replace` to the configured values it supports. Query processing begins at `3. PROCESS FROM HERE` and does not inspect token names.
+To add another token, add a separate labeled replacement block under `2. REPLACE TOKENS` in `alphablock/template.php`. Each token block calculates its replacement and applies `str_replace` to the configured values it supports. Normalization, preview, query construction and rendering begin at `3. PROCESS`; this phase does not inspect token names.
 
 ### Updating existing Story blocks
 

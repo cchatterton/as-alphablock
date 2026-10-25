@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.2.0 — 2026-10-25
+
+- Reorder the template into three sequential phases: get raw block values and owning post context, replace tokens, then normalize and process the values.
+- Keep `%me%` and `%mine%` in independent replacement blocks. The processing phase has no token-specific checks.
+- Preserve the existing query modes and rendered behavior, including Family references and editor preview.
+
 ## 3.1.11 — 2026-10-25
 
 - Give `%me%` and `%mine%` separate, labeled replacement blocks in the template.

@@ -1,4 +1,4 @@
-AlphaBlock v3.1.11 gives each token its own independent block under `2. REPLACE TOKENS` in `alphablock/template.php`. Add new token replacements there, above `3. PROCESS FROM HERE`. `%me%` still becomes the ID of the post containing the block. `%mine%` still reads that post's meta value using the filter key; for an array, it uses the first value. CPT lookup still converts numeric IDs to slugs when needed.
+AlphaBlock v3.2.0 orders the template into three clear phases: `1. GET RAW VALUES`, `2. REPLACE TOKENS`, and `3. PROCESS`. Raw values and owning post context are gathered first. Each token has an independent replacement block. Normalization, preview, query construction and rendering happen only after replacement, without checking whether a value came from a token. `%me%`, `%mine%` and numeric CPT ID conversion retain their v3.1.11 behavior.
 
 ### Related FAQs
 
@@ -23,9 +23,9 @@ The key is `relates_to`, matching the FAQ meta field. The query matches the whol
 
 ### Installation
 
-Extract `as-alphablock-3.1.11.zip` into your active theme's `blocks/` directory, replacing the existing AlphaBlock files. This is a theme component requiring the shared AlphaSys block loader, ACF PRO, `block_classes()`, Magic Card and theme layout assets.
+Extract `as-alphablock-3.2.0.zip` into your active theme's `blocks/` directory, replacing the existing AlphaBlock files. This is a theme component requiring the shared AlphaSys block loader, ACF PRO, `block_classes()`, Magic Card and theme layout assets.
 
 ### Validation
 
 - PHP syntax checks pass for both block PHP files; both block JSON files parse successfully.
-- Simulated renders verify that `%me%` becomes the owning post ID, `%mine%` reads owner meta, and token and literal IDs produce identical CPT and relationship queries.
+- Simulated renders verify that `%me%` becomes the owning post ID, `%mine%` reads owner meta, and token and literal IDs produce identical CPT, relationship and Family queries. Editor preview and malformed filter handling were also checked.

@@ -3,10 +3,11 @@
  * File: AlphaBlock
  *
  * @subpackage Blocks
- * @version    3.1.11
+ * @version    3.2.0
  * @author     Chris Chatterton
  *
  * Release Notes:
+ * 3.2.0 20261025: Separate raw values, token replacement and processing.
  * 3.1.11 20261025: Give each token its own independent replacement block.
  * 3.1.10 20261025: Replace %me% with an ID and %mine% with owner meta before queries.
  * 3.1.9 20261025: Process resolved and literal filter values identically.
@@ -40,9 +41,9 @@
  */
 
 /* ================================================================
- * 1. GET THE VALUES
- * Read the JSON, apply defaults and overrides, and identify the post
- * containing this block.
+ * 1. GET RAW VALUES
+ * Read the JSON and runtime overrides, then identify the post containing
+ * this block. No card query or rendering happens in this step.
  * ================================================================ */
 
 /*
@@ -113,173 +114,6 @@ if (is_array($runtime_data)) {
 				$runtime_data[$field_name];
 		}
 	}
-}
-
-/*
- * Normalize configuration types and limits once. Later sections can then
- * use these values without checking every possible editor input shape.
- */
-$block_values['header_level'] = min(
-	6,
-	max(
-		1,
-		(int) $block_values['header_level']
-	)
-);
-
-$block_values['header'] =
-	(string) $block_values['header'];
-
-$block_values['total_posts'] =
-	(int) $block_values['total_posts'];
-
-$block_values['post_type'] =
-	is_scalar($block_values['post_type'])
-		? sanitize_key(
-			(string) $block_values['post_type']
-		)
-		: '';
-
-$block_values['order_by'] =
-	$block_values['order_by'] ?: 'date';
-
-$block_values['sort_order'] =
-	strtoupper(
-		(string) $block_values['sort_order']
-	) === 'DESC'
-		? 'DESC'
-		: 'ASC';
-
-$block_values['query_logic'] =
-	$block_values['query_logic'] ?: 'None';
-
-$block_values['filters'] =
-	is_array($block_values['filters'])
-		? $block_values['filters']
-		: [];
-
-$block_values['family'] =
-	is_array($block_values['family'])
-		? $block_values['family']
-		: [];
-
-$block_values['show_links'] =
-	is_array($block_values['show_links'])
-		? $block_values['show_links']
-		: [];
-
-$whose_family =
-	is_scalar($block_values['whose_family'])
-		? strtolower(
-			trim(
-				(string) $block_values['whose_family']
-			)
-		)
-		: '%me%';
-
-if (
-	$whose_family === '%me%' ||
-	$whose_family === '%mine%'
-) {
-	$block_values['whose_family'] = '%me%';
-} elseif (preg_match('/^\d+$/', $whose_family)) {
-	$block_values['whose_family'] =
-		(int) $whose_family;
-} else {
-	$block_values['whose_family'] = '%me%';
-}
-
-$block_values['include_posts'] = array_values(
-	array_filter(
-		array_map(
-			'intval',
-			(array) $block_values['include_posts']
-		)
-	)
-);
-
-$block_values['exclude_posts'] = array_values(
-	array_filter(
-		array_map(
-			'intval',
-			(array) $block_values['exclude_posts']
-		)
-	)
-);
-
-$block_values['posts_per_row'] = max(
-	1,
-	(int) $block_values['posts_per_row']
-);
-
-/* The selected Card post supplies the slug used by Magic_Card below. */
-$card_id = (int) $block_values['card'];
-
-$card_post =
-	$card_id > 0
-		? get_post($card_id)
-		: null;
-
-$card_slug =
-	$card_post instanceof WP_Post
-		? $card_post->post_name
-		: '';
-
-/* The editor preview shows a summary and stops before running the query. */
-if ($is_preview) {
-	$preview_card =
-		$card_post instanceof WP_Post
-			? get_the_title($card_post)
-			: '';
-	?>
-	<div class="block-meta">
-		<span>
-			<strong>
-				<span class="dashicons dashicons-block-default"></span>
-				AlphaBlock
-			</strong>
-		</span>
-
-		<span>
-			Header:
-			<?= esc_html(
-				ucfirst(
-					$block_values['header']
-						?: 'Not defined'
-				)
-			); ?>
-		</span>
-
-		<span>
-			Post type:
-			<?= esc_html(
-				ucfirst(
-					(string) (
-						$block_values['post_type']
-							?: 'Not selected'
-					)
-				)
-			); ?>
-		</span>
-
-		<span>
-			Card:
-			<?= esc_html(
-				$preview_card
-					?: 'Not selected'
-			); ?>
-		</span>
-
-		<?php if ($json_error !== '') : ?>
-			<span>
-				JSON error:
-				<?= esc_html($json_error); ?>
-			</span>
-		<?php endif; ?>
-	</div>
-	<?php
-
-	return;
 }
 
 global $post;
@@ -550,11 +384,18 @@ if (!$alphablock_post_type) {
  * replacement and updates the values that may contain that token.
  * ================================================================ */
 
+/* Invalid filters contain no token values to replace. */
+if (!is_array($block_values['filters'])) {
+	$block_values['filters'] = [];
+}
+
 /* %me%: the ID of the post containing this block. */
-$block_values['whose_family'] = (int) str_replace(
+$block_values['whose_family'] = str_replace(
 	'%me%',
 	(string) $alphablock_post_id,
-	(string) $block_values['whose_family']
+	is_scalar($block_values['whose_family'])
+		? (string) $block_values['whose_family']
+		: '%me%'
 );
 
 foreach ($block_values['filters'] as &$filter) {
@@ -570,6 +411,13 @@ foreach ($block_values['filters'] as &$filter) {
 unset($filter);
 
 /* %mine%: read this filter's meta key on the post containing the block. */
+/* Legacy Family values use %mine% as another spelling of %me%. */
+$block_values['whose_family'] = str_replace(
+	'%mine%',
+	(string) $alphablock_post_id,
+	(string) $block_values['whose_family']
+);
+
 foreach ($block_values['filters'] as &$filter) {
 	if (
 		!is_array($filter) ||
@@ -582,7 +430,10 @@ foreach ($block_values['filters'] as &$filter) {
 	$mine = '';
 	if ($alphablock_post_id) {
 		/* For key "topic&page", read the "topic" meta field. */
-		$meta_key = trim(explode('&', (string) ($filter['key'] ?? ''), 2)[0]);
+		$filter_key = $filter['key'] ?? '';
+		$meta_key = is_scalar($filter_key)
+			? trim(explode('&', (string) $filter_key, 2)[0])
+			: '';
 		if ($meta_key !== '') {
 			$mine = get_post_meta($alphablock_post_id, $meta_key, true);
 			if (is_array($mine)) {
@@ -603,9 +454,165 @@ foreach ($block_values['filters'] as &$filter) {
 unset($filter);
 
 /* ================================================================
- * 3. PROCESS FROM HERE
- * Build the query and render cards using only resolved values.
+ * 3. PROCESS
+ * Normalize values, build the query and render cards. This step does not
+ * check whether any value was typed directly or produced by a token.
  * ================================================================ */
+
+/*
+ * Normalize configuration types and limits once. Later sections can then
+ * use these values without checking every possible editor input shape.
+ */
+$block_values['header_level'] = min(
+	6,
+	max(
+		1,
+		(int) $block_values['header_level']
+	)
+);
+
+$block_values['header'] =
+	(string) $block_values['header'];
+
+$block_values['total_posts'] =
+	(int) $block_values['total_posts'];
+
+$block_values['post_type'] =
+	is_scalar($block_values['post_type'])
+		? sanitize_key(
+			(string) $block_values['post_type']
+		)
+		: '';
+
+$block_values['order_by'] =
+	$block_values['order_by'] ?: 'date';
+
+$block_values['sort_order'] =
+	strtoupper(
+		(string) $block_values['sort_order']
+	) === 'DESC'
+		? 'DESC'
+		: 'ASC';
+
+$block_values['query_logic'] =
+	$block_values['query_logic'] ?: 'None';
+
+$block_values['filters'] =
+	is_array($block_values['filters'])
+		? $block_values['filters']
+		: [];
+
+$block_values['family'] =
+	is_array($block_values['family'])
+		? $block_values['family']
+		: [];
+
+$block_values['show_links'] =
+	is_array($block_values['show_links'])
+		? $block_values['show_links']
+		: [];
+
+$whose_family = trim((string) $block_values['whose_family']);
+
+if (preg_match('/^\d+$/', $whose_family)) {
+	$block_values['whose_family'] =
+		(int) $whose_family;
+} else {
+	$block_values['whose_family'] = $alphablock_post_id;
+}
+
+$block_values['include_posts'] = array_values(
+	array_filter(
+		array_map(
+			'intval',
+			(array) $block_values['include_posts']
+		)
+	)
+);
+
+$block_values['exclude_posts'] = array_values(
+	array_filter(
+		array_map(
+			'intval',
+			(array) $block_values['exclude_posts']
+		)
+	)
+);
+
+$block_values['posts_per_row'] = max(
+	1,
+	(int) $block_values['posts_per_row']
+);
+
+/* The selected Card post supplies the slug used by Magic_Card below. */
+$card_id = (int) $block_values['card'];
+
+$card_post =
+	$card_id > 0
+		? get_post($card_id)
+		: null;
+
+$card_slug =
+	$card_post instanceof WP_Post
+		? $card_post->post_name
+		: '';
+
+/* The editor preview shows a summary and stops before running the query. */
+if ($is_preview) {
+	$preview_card =
+		$card_post instanceof WP_Post
+			? get_the_title($card_post)
+			: '';
+	?>
+	<div class="block-meta">
+		<span>
+			<strong>
+				<span class="dashicons dashicons-block-default"></span>
+				AlphaBlock
+			</strong>
+		</span>
+
+		<span>
+			Header:
+			<?= esc_html(
+				ucfirst(
+					$block_values['header']
+						?: 'Not defined'
+				)
+			); ?>
+		</span>
+
+		<span>
+			Post type:
+			<?= esc_html(
+				ucfirst(
+					(string) (
+						$block_values['post_type']
+							?: 'Not selected'
+					)
+				)
+			); ?>
+		</span>
+
+		<span>
+			Card:
+			<?= esc_html(
+				$preview_card
+					?: 'Not selected'
+			); ?>
+		</span>
+
+		<?php if ($json_error !== '') : ?>
+			<span>
+				JSON error:
+				<?= esc_html($json_error); ?>
+			</span>
+		<?php endif; ?>
+	</div>
+	<?php
+
+	return;
+}
 
 /* Give this block instance a stable wrapper ID and its theme classes. */
 $block_id =
