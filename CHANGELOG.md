@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.1.9 — 2026-10-25
+
+- Replace `%me%` in filter values immediately after resolving the post that contains the block.
+- Build relationship, Meta and CPT queries from the resulting values without checking whether they came from a token. A literal `relates_to` ID and `%me%` now build identical query arguments.
+- Mark the three stages in the template: get values, replace tokens, process the query and render cards.
+
 ## 3.1.8 — 2026-10-25
 
 - Resolve `%me%` from the post containing the block before building filters: ID for Meta and Family, slug for CPT lookups.

@@ -3,10 +3,11 @@
  * File: AlphaBlock
  *
  * @subpackage Blocks
- * @version    3.1.8
+ * @version    3.1.9
  * @author     Chris Chatterton
  *
  * Release Notes:
+ * 3.1.9 20261025: Process resolved and literal filter values identically.
  * 3.1.8 20261025: Resolve %me% by filter context before building queries.
  * 3.1.7 20261023: Restore 3.1.4 behavior and document the template sections.
  * 3.1.4 20261022: Treat a null post_type (- Select -) as WordPress any for all queries.
@@ -35,6 +36,12 @@
  * 1.1  20241210 CC: added %me% support
  * 1.0  20241203 CC: Clone of Superblock v1.2
  */
+
+/* ================================================================
+ * 1. GET THE VALUES
+ * Read the JSON, apply defaults and overrides, and identify the post
+ * containing this block.
+ * ================================================================ */
 
 /*
  * Load the complete block configuration from one ACF field.
@@ -535,6 +542,37 @@ if (!$alphablock_post_type) {
 	}
 }
 
+/* ================================================================
+ * 2. REPLACE TOKENS
+ * Convert %me% to the owning post's ID or slug. Literal and token-supplied
+ * values then pass through the same query code.
+ * ================================================================ */
+
+$alphablock_post_slug = $alphablock_post_id > 0
+	? (string) get_post_field('post_name', $alphablock_post_id)
+	: '';
+
+$block_values['whose_family'] =
+	$block_values['whose_family'] === '%me%'
+		? $alphablock_post_id
+		: (int) $block_values['whose_family'];
+
+foreach ($block_values['filters'] as &$filter) {
+	if (!is_array($filter) || ($filter['value'] ?? null) !== '%me%') {
+		continue;
+	}
+
+	$filter['value'] = ($filter['filter_type'] ?? 'Meta') === 'CPT'
+		? $alphablock_post_slug
+		: $alphablock_post_id;
+}
+unset($filter);
+
+/* ================================================================
+ * 3. PROCESS FROM HERE
+ * Build the query and render cards using only resolved values.
+ * ================================================================ */
+
 /* Give this block instance a stable wrapper ID and its theme classes. */
 $block_id =
 	isset($block['id'])
@@ -601,17 +639,6 @@ if ($block_values['order_by'] === 'rand') {
 	$block_values['total_posts'] = -1;
 }
 
-/* Resolve the owner once, before interpreting any context-dependent tokens. */
-$alphablock_post_slug = $alphablock_post_id > 0
-	? (string) get_post_field('post_name', $alphablock_post_id)
-	: '';
-
-/* whose_family uses the owning post ID, never its slug. */
-$family_reference_id =
-	$block_values['whose_family'] === '%me%'
-		? $alphablock_post_id
-		: (int) $block_values['whose_family'];
-
 /* The - Select - choice stores null and means any post type. */
 $query_post_type = $block_values['post_type'] ?: 'any';
 
@@ -639,9 +666,9 @@ $args = [
 ];
 
 /*
- * Resolve filter tokens before the query modes run. Meta values refer to the
- * owning post ID; CPT values refer to its slug. The relationship field stores
- * a list of IDs, so its equality clause must match a whole ID in that list.
+ * Build filter clauses from the values already resolved above. The
+ * relationship field stores a list of IDs, so equality must match a whole ID
+ * in that list for literal and resolved values alike.
  */
 $query_logic = strtolower((string) $block_values['query_logic']);
 $resolved_filter_clauses = [];
@@ -674,10 +701,7 @@ foreach ($filters_to_resolve as $condition) {
 	$key_2 = isset($keys[1]) ? trim($keys[1]) : $key_1;
 	$filter_type = (string) $condition['filter_type'];
 	$compare = strtoupper((string) $condition['compare_as']);
-	$is_me = $condition['value'] === '%me%';
-	$value = $is_me
-		? ($filter_type === 'CPT' ? $alphablock_post_slug : $alphablock_post_id)
-		: $condition['value'];
+	$value = $condition['value'];
 
 	if ($filter_type === 'CPT') {
 		/* Resolve the slug to a post ID before building the main query. */
@@ -711,8 +735,14 @@ foreach ($filters_to_resolve as $condition) {
 		continue;
 	}
 
-	if ($is_me && $key_1 === 'relates_to' && $compare === '=') {
+	if (
+		$key_1 === 'relates_to' &&
+		$compare === '=' &&
+		is_scalar($value) &&
+		ctype_digit((string) $value)
+	) {
 		/* ACF relationship IDs may be serialized as strings or integers. */
+		$value = (int) $value;
 		$resolved_filter_clauses[] = $value > 0
 			? [
 				'relation' => 'OR',
@@ -801,7 +831,7 @@ switch ($query_logic) {
 		 * Use the resolved whose_family reference rather than whichever
 		 * post happens to be stored in the global $post variable.
 		 */
-		$current_post_id = $family_reference_id;
+		$current_post_id = (int) $block_values['whose_family'];
 
 		$parent_id =
 			$current_post_id
