@@ -3,10 +3,11 @@
  * File: AlphaBlock
  *
  * @subpackage Blocks
- * @version    3.1.10
+ * @version    3.1.11
  * @author     Chris Chatterton
  *
  * Release Notes:
+ * 3.1.11 20261025: Give each token its own independent replacement block.
  * 3.1.10 20261025: Replace %me% with an ID and %mine% with owner meta before queries.
  * 3.1.9 20261025: Process resolved and literal filter values identically.
  * 3.1.8 20261025: Resolve %me% by filter context before building queries.
@@ -545,10 +546,11 @@ if (!$alphablock_post_type) {
 
 /* ================================================================
  * 2. REPLACE TOKENS
- * Replace %me% with the owning post ID. In a filter, %mine% reads that
- * filter's meta key on the owning post. Query code sees ordinary values.
+ * Add new tokens as separate blocks here. Each block calculates its own
+ * replacement and updates the values that may contain that token.
  * ================================================================ */
 
+/* %me%: the ID of the post containing this block. */
 $block_values['whose_family'] = (int) str_replace(
 	'%me%',
 	(string) $alphablock_post_id,
@@ -559,9 +561,26 @@ foreach ($block_values['filters'] as &$filter) {
 	if (!is_array($filter) || !is_string($filter['value'] ?? null)) {
 		continue;
 	}
+	$filter['value'] = str_replace(
+		'%me%',
+		(string) $alphablock_post_id,
+		$filter['value']
+	);
+}
+unset($filter);
+
+/* %mine%: read this filter's meta key on the post containing the block. */
+foreach ($block_values['filters'] as &$filter) {
+	if (
+		!is_array($filter) ||
+		!is_string($filter['value'] ?? null) ||
+		strpos($filter['value'], '%mine%') === false
+	) {
+		continue;
+	}
 
 	$mine = '';
-	if (strpos($filter['value'], '%mine%') !== false && $alphablock_post_id) {
+	if ($alphablock_post_id) {
 		/* For key "topic&page", read the "topic" meta field. */
 		$meta_key = trim(explode('&', (string) ($filter['key'] ?? ''), 2)[0]);
 		if ($meta_key !== '') {
@@ -576,8 +595,8 @@ foreach ($block_values['filters'] as &$filter) {
 	}
 
 	$filter['value'] = str_replace(
-		['%me%', '%mine%'],
-		[(string) $alphablock_post_id, is_scalar($mine) ? (string) $mine : ''],
+		'%mine%',
+		is_scalar($mine) ? (string) $mine : '',
 		$filter['value']
 	);
 }

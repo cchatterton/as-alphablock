@@ -1,4 +1,4 @@
-AlphaBlock v3.1.10 retains the three marked stages: get the values, replace tokens, and process the query and cards. `%me%` always becomes the ID of the post containing the block. `%mine%` in a filter reads that post's meta value using the filter key; for an array, it uses the first value. CPT lookup converts numeric IDs to slugs when needed, regardless of where the ID came from.
+AlphaBlock v3.1.11 gives each token its own independent block under `2. REPLACE TOKENS` in `alphablock/template.php`. Add new token replacements there, above `3. PROCESS FROM HERE`. `%me%` still becomes the ID of the post containing the block. `%mine%` still reads that post's meta value using the filter key; for an array, it uses the first value. CPT lookup still converts numeric IDs to slugs when needed.
 
 ### Related FAQs
 
@@ -23,7 +23,7 @@ The key is `relates_to`, matching the FAQ meta field. The query matches the whol
 
 ### Installation
 
-Extract `as-alphablock-3.1.10.zip` into your active theme's `blocks/` directory, replacing the existing AlphaBlock files. This is a theme component requiring the shared AlphaSys block loader, ACF PRO, `block_classes()`, Magic Card and theme layout assets.
+Extract `as-alphablock-3.1.11.zip` into your active theme's `blocks/` directory, replacing the existing AlphaBlock files. This is a theme component requiring the shared AlphaSys block loader, ACF PRO, `block_classes()`, Magic Card and theme layout assets.
 
 ### Validation
 

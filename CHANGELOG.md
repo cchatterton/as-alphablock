@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.1.11 — 2026-10-25
+
+- Give `%me%` and `%mine%` separate, labeled replacement blocks in the template.
+- Mark the exact place to add another independent token replacement before query processing.
+- Keep query behavior unchanged from v3.1.10.
+
 ## 3.1.10 — 2026-10-25
 
 - Replace `%me%` with the owning post ID for every filter and Family reference before query processing.
