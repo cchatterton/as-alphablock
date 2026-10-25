@@ -4,11 +4,11 @@ AlphaSys’s ACF-based WordPress block for querying posts and rendering them thr
 
 ## Release
 
-The current repository release is **v3.1.7**. It restores the executable template behavior of v3.1.4 and adds comments explaining each major section. The reverse FAQ lookup from v3.1.5 and v3.1.6 is not included. The Post type field's `- Select -` value (`"post_type": null` in JSON) means WordPress `any`.
+The current repository release is **v3.1.8**. Filter tokens are resolved from the post containing the block before the query runs. The Post type field's `- Select -` value (`"post_type": null` in JSON) means WordPress `any`.
 
 ## Installation
 
-1. Download `as-alphablock-3.1.7.zip` from the GitHub release.
+1. Download `as-alphablock-3.1.8.zip` from the GitHub release.
 2. Extract its `alphablock/` folder into your active theme’s `blocks/` directory.
 3. Use the existing AlphaSys theme framework to load ACF JSON and register `blocks/*/block.json`.
 4. Select a Card and configure AlphaBlock in the block editor.
@@ -17,9 +17,9 @@ This is a theme block component, not an independently installable WordPress plug
 
 ### Related FAQs
 
-For an FAQ's multi-select ACF `relates_to` field, use `query_logic` of `Any` or `All` and a Meta filter with `key` set to `relates_to` and `value` set to `%me%`. The renderer reads the IDs selected on that FAQ and renders those posts. The existing `compare_as` value can remain `=`. Set `post_type` to `null` to represent `- Select -`; for this relationship filter, the selected posts' actual types are used. Ordering, limits, exclusions and Card selection still apply.
+To show FAQs that refer to the page containing the block, set `post_type` to `faq`, `query_logic` to `All`, and add a Meta filter with `key: "relates_to"`, `compare_as: "="`, and `value: "%me%"`. The renderer resolves `%me%` to the containing page's ID, then queries FAQ metadata for that whole ID. It handles ACF relationships stored as serialized string or integer ID arrays, as well as a single ID. The key must be `relates_to`, matching the actual FAQ meta key.
 
-The v3.1.4 behavior does not provide a dedicated reverse lookup for FAQs whose `relates_to` field contains the current page. A `CPT` filter resolves a post by slug and compares its ID with a meta field; it does not scan FAQ relationship values.
+For other Meta filters, `%me%` also resolves to the containing post ID. For CPT filters, `%me%` resolves to its slug before the CPT lookup. `whose_family: "%me%"` resolves to its ID. These values are determined once from the block's owning post, rather than from the global `$post`.
 
 ### Updating existing Story blocks
 

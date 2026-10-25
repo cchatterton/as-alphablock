@@ -1,18 +1,31 @@
-Restores AlphaBlock's v3.1.4 executable behavior and adds comments throughout `alphablock/template.php` to explain its major sections. The reverse FAQ lookup added in v3.1.5 and revised in v3.1.6 is removed.
+AlphaBlock v3.1.8 resolves `%me%` from the post containing the block before query filters run. Meta filters use that post's ID; CPT filters use its slug; Family uses its ID.
 
-### What this means for existing blocks
+### Related FAQs
 
-The FAQ-to-content `Meta` filter on `relates_to` and `%me%` remains as it was in v3.1.4. The Post type field's `- Select -` / JSON `null` value still means WordPress `any`.
+To list FAQs that refer to the page containing the block, configure:
 
-The `CPT` filter with `related_to` or `relates_to` and `%me%` does not perform a reverse relationship lookup in this release. It follows the v3.1.4 CPT slug lookup behavior.
+```json
+{
+  "post_type": "faq",
+  "query_logic": "All",
+  "filters": [
+    {
+      "filter_type": "Meta",
+      "key": "relates_to",
+      "compare_as": "=",
+      "value": "%me%"
+    }
+  ]
+}
+```
+
+The key is `relates_to`, matching the FAQ meta field. The query matches the whole page ID in ACF relationship arrays or as a single ID. Other card and layout options can remain in the block JSON. This changes the v3.1.7 `relates_to` Meta behavior, which read selected posts from the containing FAQ.
 
 ### Installation
 
-Extract `as-alphablock-3.1.7.zip` into your active theme's `blocks/` directory, replacing the existing AlphaBlock files. This is a theme component requiring the shared AlphaSys block loader, ACF PRO, `block_classes()`, Magic Card and theme layout assets.
+Extract `as-alphablock-3.1.8.zip` into your active theme's `blocks/` directory, replacing the existing AlphaBlock files. This is a theme component requiring the shared AlphaSys block loader, ACF PRO, `block_classes()`, Magic Card and theme layout assets.
 
 ### Validation
 
-- Executable PHP tokens in `alphablock/template.php` match v3.1.4 exactly after comments and whitespace are excluded.
 - PHP syntax checks pass for both block PHP files; both block JSON files parse successfully.
-- The existing FAQ-to-content simulated render passes.
-- The release ZIP contains the four block source files.
+- Simulated renders verify that Meta filters use the owning post ID, CPT filters use its slug, and `relates_to` builds exact ID conditions across ACF storage formats.

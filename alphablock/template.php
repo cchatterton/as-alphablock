@@ -3,10 +3,11 @@
  * File: AlphaBlock
  *
  * @subpackage Blocks
- * @version    3.1.7
+ * @version    3.1.8
  * @author     Chris Chatterton
  *
  * Release Notes:
+ * 3.1.8 20261025: Resolve %me% by filter context before building queries.
  * 3.1.7 20261023: Restore 3.1.4 behavior and document the template sections.
  * 3.1.4 20261022: Treat a null post_type (- Select -) as WordPress any for all queries.
  * 3.1.3 20261022: Render the posts selected by the owning FAQ's relates_to field, across post types.
@@ -600,7 +601,12 @@ if ($block_values['order_by'] === 'rand') {
 	$block_values['total_posts'] = -1;
 }
 
-/* whose_family selects the hierarchy reference for Family queries. */
+/* Resolve the owner once, before interpreting any context-dependent tokens. */
+$alphablock_post_slug = $alphablock_post_id > 0
+	? (string) get_post_field('post_name', $alphablock_post_id)
+	: '';
+
+/* whose_family uses the owning post ID, never its slug. */
 $family_reference_id =
 	$block_values['whose_family'] === '%me%'
 		? $alphablock_post_id
@@ -632,14 +638,120 @@ $args = [
 		false,
 ];
 
+/*
+ * Resolve filter tokens before the query modes run. Meta values refer to the
+ * owning post ID; CPT values refer to its slug. The relationship field stores
+ * a list of IDs, so its equality clause must match a whole ID in that list.
+ */
+$query_logic = strtolower((string) $block_values['query_logic']);
+$resolved_filter_clauses = [];
+$filters_to_resolve = in_array($query_logic, ['all', 'any'], true)
+	? $block_values['filters']
+	: [];
+
+foreach ($filters_to_resolve as $condition) {
+	if (!is_array($condition)) {
+		continue;
+	}
+
+	$condition = array_replace(
+		[
+			'filter_type' => 'Meta',
+			'key'         => '',
+			'compare_as'  => '=',
+			'value'       => '',
+		],
+		$condition
+	);
+
+	if (!is_scalar($condition['key']) || trim((string) $condition['key']) === '') {
+		continue;
+	}
+
+	/* CPT keys may include a separate lookup type: meta_key&post_type. */
+	$keys = explode('&', (string) $condition['key'], 2);
+	$key_1 = trim($keys[0]);
+	$key_2 = isset($keys[1]) ? trim($keys[1]) : $key_1;
+	$filter_type = (string) $condition['filter_type'];
+	$compare = strtoupper((string) $condition['compare_as']);
+	$is_me = $condition['value'] === '%me%';
+	$value = $is_me
+		? ($filter_type === 'CPT' ? $alphablock_post_slug : $alphablock_post_id)
+		: $condition['value'];
+
+	if ($filter_type === 'CPT') {
+		/* Resolve the slug to a post ID before building the main query. */
+		$matches = $value !== ''
+			? get_posts([
+				'name'        => $value,
+				'post_type'   => $key_2,
+				'post_status' => 'publish',
+				'numberposts' => 1,
+				'fields'      => 'ids',
+			])
+			: [];
+
+		$resolved_filter_clauses[] = $matches
+			? [
+				'key'     => $key_1,
+				'value'   => $compare === 'LIKE'
+					? sprintf(':"%s";', $matches[0])
+					: $matches[0],
+				'compare' => $compare,
+			]
+			: [
+				'key'     => $key_1,
+				'value'   => '__alphablock_unmatched_cpt__',
+				'compare' => '=',
+			];
+		continue;
+	}
+
+	if ($filter_type !== 'Meta') {
+		continue;
+	}
+
+	if ($is_me && $key_1 === 'relates_to' && $compare === '=') {
+		/* ACF relationship IDs may be serialized as strings or integers. */
+		$resolved_filter_clauses[] = $value > 0
+			? [
+				'relation' => 'OR',
+				[
+					'key' => $key_1,
+					'value' => '"' . $value . '"',
+					'compare' => 'LIKE',
+				],
+				[
+					'key' => $key_1,
+					'value' => 'i:' . $value . ';',
+					'compare' => 'LIKE',
+				],
+				[
+					'key' => $key_1,
+					'value' => $value,
+					'compare' => '=',
+				],
+			]
+			: [
+				'key' => $key_1,
+				'value' => '__alphablock_no_owner__',
+				'compare' => '=',
+			];
+		continue;
+	}
+
+	/* Ordinary Meta values compare directly after token resolution. */
+	$resolved_filter_clauses[] = [
+		'key'     => $key_1,
+		'value'   => $value,
+		'compare' => $compare,
+	];
+}
+
 $posts = [];
 
 /* None/Build use the base query; All/Any add filters; Family uses hierarchy. */
-switch (
-	strtolower(
-		(string) $block_values['query_logic']
-	)
-) {
+switch ($query_logic) {
 	case 'none':
 		$posts = get_posts($args);
 		break;
@@ -647,177 +759,13 @@ switch (
 	case 'all':
 	case 'any':
 		/* All combines filter clauses with AND; Any combines them with OR. */
-		$all_any =
-			strtolower(
-				(string) $block_values['query_logic']
-			) === 'all'
-				? 'AND'
-				: 'OR';
+		$all_any = $query_logic === 'all' ? 'AND' : 'OR';
 
-		if (count($block_values['filters']) > 0) {
-			$args['meta_query'] = [
-				'relation' => $all_any,
-			];
-
-			foreach (
-				$block_values['filters']
-				as $condition
-			) {
-				if (!is_array($condition)) {
-					continue;
-				}
-
-				$condition = array_replace(
-					[
-						'filter_type' => 'Meta',
-						'key'         => '',
-						'compare_as'  => '=',
-						'value'       => '',
-					],
-					$condition
-				);
-
-				if ($condition['key'] === '') {
-					continue;
-				}
-
-			$compare = strtoupper(
-					(string) $condition['compare_as']
-				);
-
-			/* A key may be "meta_key&post_type" for a CPT lookup. */
-				if (
-					strpos(
-						(string) $condition['key'],
-						'&'
-					) !== false
-				) {
-					$keys = explode(
-						'&',
-						(string) $condition['key'],
-						2
-					);
-
-					$key_1 = trim($keys[0]);
-					$key_2 = trim($keys[1]);
-				} else {
-					$key_1 = trim(
-						(string) $condition['key']
-					);
-
-					$key_2 = $key_1;
-				}
-
-			/* For ordinary filters, %me% derives a slug from $post. */
-			if (
-					$condition['value'] === '%me%' &&
-					$post instanceof WP_Post
-				) {
-					if ($post->post_type === $key_1) {
-						$value = $post->post_name;
-					} else {
-						$value_meta = get_post_meta(
-							$post->ID,
-							$key_1,
-							true
-						);
-
-						$value_id = is_array($value_meta)
-							? reset($value_meta)
-							: $value_meta;
-
-						$value = $value_id
-							? get_post_field(
-								'post_name',
-								$value_id
-							)
-							: '';
-					}
-				} else {
-					$value = $condition['value'];
-				}
-
-			/* CPT finds a post by slug, then compares its ID with meta. */
-			if ($condition['filter_type'] === 'CPT') {
-					$cpt_args = [
-						'name'        => $value,
-						'post_type'   => $key_2,
-						'post_status' => 'publish',
-						'numberposts' => 1,
-						'fields'      => 'ids',
-					];
-
-					$post_object =
-						get_posts($cpt_args);
-
-				/* A missing CPT lookup adds no clause to the main query. */
-				if (!empty($post_object)) {
-						$args['meta_query'][] = [
-							'key' => $key_1,
-
-							'value' =>
-								$compare === 'LIKE'
-									? sprintf(
-										':"%s";',
-										$post_object[0]
-									)
-									: $post_object[0],
-
-							'compare' => $compare,
-						];
-					}
-			} elseif (
-					$condition['filter_type'] === 'Meta'
-				) {
-				/* Meta normally compares directly with the stored field. */
-				if (
-					$key_1 === 'relates_to' &&
-					$condition['value'] === '%me%'
-				) {
-					/* The block is on the FAQ. Read its selected relationship
-					 * IDs and query those posts, which may have different types.
-					 */
-					$related_ids = $alphablock_post_id > 0
-						? wp_parse_id_list(
-							get_post_meta(
-								$alphablock_post_id,
-								$key_1,
-								true
-							)
-						)
-						: [];
-
-					/* An empty post__in array would match every post. */
-					$args['post__in'] = $related_ids ?: [0];
-					$args['post_type'] = $related_ids
-						? array_values(
-							array_unique(
-								array_filter(
-									array_map(
-										'get_post_type',
-										$related_ids
-									)
-								)
-							)
-						)
-						: 'any';
-				} else {
-						$args['meta_query'][] = [
-							'key'     => $key_1,
-							'value'   => $value,
-							'compare' => $compare,
-						];
-				}
-				}
-			}
-		}
-
-		/* A relation alone needs no meta query. */
-		if (
-			isset($args['meta_query']) &&
-			count($args['meta_query']) === 1
-		) {
-			unset($args['meta_query']);
+		if ($resolved_filter_clauses) {
+			$args['meta_query'] = array_merge(
+				['relation' => $all_any],
+				$resolved_filter_clauses
+			);
 		}
 
 		$posts = get_posts($args);

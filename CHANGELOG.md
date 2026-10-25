@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.1.8 — 2026-10-25
+
+- Resolve `%me%` from the post containing the block before building filters: ID for Meta and Family, slug for CPT lookups.
+- Query posts whose `relates_to` metadata contains that ID when the filter is Meta with `compare_as: "="`. Match complete IDs in ACF serialized arrays or a single scalar ID.
+- Keep the configured `post_type`, ordering and limit for the FAQ query. A CPT lookup that finds no post now matches no posts rather than leaving the main query unrestricted.
+- Update the Related FAQs configuration guidance.
+
 ## 3.1.7 — 2026-10-23
 
 - Restore the executable template behavior from v3.1.4, removing the reverse FAQ lookups added in v3.1.5 and v3.1.6.
