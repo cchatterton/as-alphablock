@@ -1,7 +1,8 @@
 <?php
 /**
- * Default authoring prompt for AlphaBlock's existing Prompt textarea.
- * This is guidance for an authoring assistant; it makes no AI/API requests.
+ * System instructions for an AlphaBlock authoring integration.
+ * Kept separate from the author's NLP request textarea. This helper returns
+ * instructions only; the component does not itself make AI/API requests.
  */
 function alphablock_get_prompt() {
 	$prompt = <<<'PROMPT'

@@ -9,11 +9,16 @@
  */
 require_once __DIR__ . '/prompt.php';
 
-// Populate only empty prompts; keep any author-supplied prompt text intact.
+// This textarea belongs to the author's request, not the system instructions.
+// Clear only the exact generated prompt that v3.3.0 may have saved here.
 add_filter('acf/load_value/key=field_prompt', static function ($value) {
-	return $value === null || $value === false || $value === ''
-		? alphablock_get_prompt()
-		: $value;
+	if ($value === null || $value === false) {
+		return '';
+	}
+	if (is_string($value) && trim($value) === trim(alphablock_get_prompt())) {
+		return '';
+	}
+	return $value;
 });
 
 add_action('admin_footer', function () {

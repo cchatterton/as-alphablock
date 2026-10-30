@@ -112,3 +112,16 @@ test('JSON edits and blur retain the token spelling and Post filter value', asyn
     assert.equal(ui.input('field_prompt').value, 'My saved prompt');
   } finally { ui.dom.window.close(); }
 });
+
+test('NLP request input is blank by default and its example is only a placeholder', () => {
+  const field = group.fields.find(field => field.key === 'field_prompt');
+  assert.equal(group.fields.find(field => field.key === 'field_tab_prompt').label, 'NLP');
+  assert.equal(field.name, 'prompt');
+  assert.equal(field.label, 'Your request');
+  assert.equal(field.default_value, '');
+  assert.ok(field.placeholder.includes('state = nsw'));
+  assert.ok(!field.placeholder.includes('"query_logic"'));
+  const ui = editor({});
+  try { assert.equal(ui.input('field_prompt').value, 'My saved prompt'); }
+  finally { ui.dom.window.close(); }
+});

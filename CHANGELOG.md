@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.3.1 — 2026-10-30
+
+- Keep the NLP request textarea empty rather than inserting system instructions.
+- Label the tab NLP and the input Your request, with an example placeholder; preserve the existing saved field key/name.
+- Clear only an exact generated system prompt accidentally saved by v3.3.0; retain genuine saved requests.
+- Keep system instructions in prompt.php for an authoring integration. No NLP/API request handler is present in the supplied component.
+- Query, token and card-rendering behaviour is unchanged from 3.3.0.
+
 ## 3.3.0 — 2026-10-30
 
 - Extract extensible bulk token replacement into tokens.php, conditional query construction into args.php, and default Prompt guidance into prompt.php.

@@ -602,7 +602,7 @@
         },
         {
             "key": "field_tab_prompt",
-            "label": "Prompt",
+            "label": "NLP",
             "name": "",
             "type": "tab",
             "wrapper": {
@@ -616,7 +616,7 @@
         },
         {
             "key": "field_prompt",
-            "label": "Prompt",
+            "label": "Your request",
             "name": "prompt",
             "type": "textarea",
             "wrapper": {
@@ -627,8 +627,9 @@
             "default_value": "",
             "maxlength": "",
             "rows": 12,
-            "placeholder": "",
-            "new_lines": ""
+            "placeholder": "Show all posts with state = nsw using the news card. Carousel on desktop, swipe on mobile.",
+            "new_lines": "",
+            "instructions": "Describe the content, card and layouts you want."
         },
         {
             "key": "field_tab_json",
@@ -671,5 +672,5 @@
         ]
     ],
     "active": true,
-    "modified": 1793318400
+    "modified": 1793342953
 }
