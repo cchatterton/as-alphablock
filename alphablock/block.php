@@ -7,6 +7,15 @@
  * This file belongs inside the AlphaBlock folder and is included by the
  * shared ACF Blocks registration function.
  */
+require_once __DIR__ . '/prompt.php';
+
+// Populate only empty prompts; keep any author-supplied prompt text intact.
+add_filter('acf/load_value/key=field_prompt', static function ($value) {
+	return $value === null || $value === false || $value === ''
+		? alphablock_get_prompt()
+		: $value;
+});
+
 add_action('admin_footer', function () {
 	?>
 	<script id="alphablock-json-sync-debug">
@@ -107,7 +116,8 @@ add_action('admin_footer', function () {
 					applyingJson: false,
 					writingJson: false,
 					fieldsTimer: null,
-					jsonTimer: null
+					jsonTimer: null,
+					tokenValues: {}
 				};
 
 				blockStates.set(block, state);
@@ -239,14 +249,18 @@ add_action('admin_footer', function () {
 						value === undefined
 							? ''
 							: String(value)
-								.trim()
-								.toLowerCase();
+								.trim();
 
 					if (
-						reference === '%me%' ||
-						reference === '%mine%'
+						reference.toLowerCase() === '%me%' ||
+						reference.toLowerCase() === '%mine%'
 					) {
 						return '%me%';
+					}
+
+					// Preserve named/unknown tokens and their case in saved JSON.
+					if (/%[^%]+%/.test(reference)) {
+						return reference;
 					}
 
 					if (/^\d+$/.test(reference)) {
@@ -388,7 +402,7 @@ add_action('admin_footer', function () {
 		}
 
 		function readBlock(block) {
-			return {
+			var data = {
 				header_level: readField(
 					block,
 					FIELD_MAP.header_level
@@ -455,6 +469,32 @@ add_action('admin_footer', function () {
 					FIELD_MAP.exclude_posts
 				)
 			};
+			// Typed ACF controls cannot represent every JSON token (e.g. a range).
+			// Keep those raw values until the author explicitly edits that field.
+			var tokenValues = getState(block).tokenValues;
+			Object.keys(tokenValues).forEach(function (name) {
+				data[name] = tokenValues[name];
+			});
+			return data;
+		}
+
+		function rememberTokenValues(block, data) {
+			function containsToken(value) {
+				if (typeof value === 'string') {
+					return /%[^%]+%/.test(value);
+				}
+				return value && typeof value === 'object' &&
+					Object.keys(value).some(function (key) {
+						return containsToken(value[key]);
+					});
+			}
+			var remembered = {};
+			Object.keys(data).forEach(function (name) {
+				if ((hasOwn(FIELD_MAP, name) || name === 'filters') && containsToken(data[name])) {
+					remembered[name] = data[name];
+				}
+			});
+			getState(block).tokenValues = remembered;
 		}
 
 		function getJsonTextarea(block) {
@@ -924,6 +964,7 @@ add_action('admin_footer', function () {
 				}
 
 				markJsonValid(textarea);
+				rememberTokenValues(block, data);
 				applyJsonToFields(block, data);
 
 				if (formatAfterApply) {
@@ -974,6 +1015,11 @@ add_action('admin_footer', function () {
 				return;
 			}
 
+			var state = getState(block);
+			if (state.applyingJson || state.writingJson) {
+				return;
+			}
+
 			var key = field.getAttribute('data-key');
 
 			if (key === 'field_prompt') {
@@ -985,6 +1031,14 @@ add_action('admin_footer', function () {
 				return;
 			}
 
+			Object.keys(FIELD_MAP).forEach(function (name) {
+				if (FIELD_MAP[name].key === key) {
+					delete state.tokenValues[name];
+				}
+			});
+			if (key === 'field_filters' || key.indexOf('field_filters_') === 0) {
+				delete state.tokenValues.filters;
+			}
 			scheduleFieldsToJson(block);
 		}
 
@@ -1016,6 +1070,15 @@ add_action('admin_footer', function () {
 			);
 
 			var jsonTextarea = getJsonTextarea(block);
+			try {
+				var initialData = JSON.parse(jsonTextarea.value);
+				if (initialData && typeof initialData === 'object' && !Array.isArray(initialData)) {
+					rememberTokenValues(block, initialData);
+				}
+			} catch (error) {
+				// Empty/legacy JSON still bootstraps from the existing field controls.
+			}
+
 
 			jsonTextarea.addEventListener(
 				'blur',

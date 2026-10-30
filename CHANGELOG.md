@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.3.0 — 2026-10-30
+
+- Extract extensible bulk token replacement into tokens.php, conditional query construction into args.php, and default Prompt guidance into prompt.php.
+- Add owner ID/slug aliases and named metadata tokens while retaining existing token behaviour.
+- Implement ordered Build quotas, deduplication, early stopping and manual inclusion/exclusion rules.
+- Add Post Attributes filters with safe attribute comparisons and mixed All/Any handling; retain published-only output.
+- Add editor instructions; label CPT filters Persona Targets; combine Includes/Excludes into Manual Selection without changing saved data keys.
+- Preserve raw tokens through editor field/JSON synchronization.
+- Validate against supplied 3.2.1 with WordPress database and editor regression tests. See TESTING.md for scope and staging checks.
+
+## 3.2.1 — supplied template baseline, 2026-10-29
+
+- Replace %me% and %me->slug% throughout string input values in one pass.
+- Supplied directly in this task; this entry records the compatibility reference, not a separate GitHub release.
+
 ## 3.2.0 — 2026-10-25
 
 - Reorder the template into three sequential phases: get raw block values and owning post context, replace tokens, then normalize and process the values.

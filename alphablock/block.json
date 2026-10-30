@@ -8,7 +8,11 @@
   "editorStyle": "file:./style.css",
   "category": "formatting",
   "icon": "embed-generic",
-  "keywords": ["alpha", "block", "alphablock"],
+  "keywords": [
+    "alpha",
+    "block",
+    "alphablock"
+  ],
   "acf": {
     "blockVersion": 3,
     "mode": "preview",
@@ -28,5 +32,6 @@
         "row": 123
       }
     }
-  }
+  },
+  "version": "3.3.0"
 }

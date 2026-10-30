@@ -1,61 +1,118 @@
 # AlphaBlock
 
-AlphaSys’s ACF-based WordPress block for querying posts and rendering them through reusable Magic Card templates.
+AlphaSys's ACF-based WordPress theme block for querying posts and rendering reusable Magic Card templates.
 
-## Release
+## Version 3.3.0
 
-The current repository release is **v3.2.0**. The template runs in three phases: get raw block values and the owning post context, replace tokens, then process the values. The processing phase handles literal and token-derived values identically. The Post type field's `- Select -` value (`"post_type": null` in JSON) means WordPress `any`.
+This release separates token resolution, query construction and authoring guidance into `tokens.php`, `args.php` and `prompt.php`. It adds the Build waterfall and Post Attributes filters, and explains the controls in the editor. The compatibility baseline is the supplied template **3.2.1**; existing None, All, Any and Family behaviour is retained for their existing configurations.
 
-## Installation
+**Build changes behaviour:** it previously ran the base query. With filter rows it now fills a quota in filter priority order. Review existing blocks using Build before deployment. Existing saved JSON does not need a schema migration.
 
-1. Download `as-alphablock-3.2.0.zip` from the GitHub release.
-2. Extract its `alphablock/` folder into your active theme’s `blocks/` directory.
-3. Use the existing AlphaSys theme framework to load ACF JSON and register `blocks/*/block.json`.
-4. Select a Card and configure AlphaBlock in the block editor.
+## Installation and upgrade
 
-This is a theme block component, not an independently installable WordPress plugin.
+1. Back up the currently deployed `blocks/alphablock/` folder and the content/configuration being edited.
+2. Download `as-alphablock-3.3.0.zip` from the GitHub release.
+3. Extract the complete `alphablock/` folder into your active theme's `blocks/` directory, replacing the existing files. Deploy **all seven files together**; the template and editor require the new helpers.
+4. Keep the shared AlphaSys theme loader that loads ACF JSON and registers `blocks/*/block.json`.
+5. Sync the AlphaBlock ACF field group from local JSON if the editor still shows the old layout. Its field-group key and saved field keys are preserved; its modification timestamp is updated. Do not use the old destructive ACF hard-reset snippet.
+6. Smoke-test representative pages on staging, including an existing related-FAQ block, Family block, layouts, editor saves and any Build blocks, before promoting the folder to production.
+
+This is a theme component, not a standalone plugin. It does not install an updater or deploy to live sites.
+
+For rollback, restore the complete previous block folder. If you saved new Post Attributes filters or changed Build configurations, restore those saved configurations as well; older renderers do not implement the new behaviour.
+
+## Files and processing
+
+| File | Responsibility |
+|---|---|
+| `block.json` | Registration and component version for `acf/alphablock` |
+| `alphablock.json` | ACF fields, tabs, labels and editor guidance |
+| `block.php` | Bidirectional field/JSON editing and default Prompt loading |
+| `template.php` | Raw configuration, owning-post context, normalization, query execution and existing card markup |
+| `tokens.php` | Token definitions and one bulk replacement pass |
+| `args.php` | Base/conditional query construction, Family selection and Build step arguments |
+| `prompt.php` | Default authoring guidance for the existing editable Prompt field |
+
+The pipeline is: load JSON and runtime overrides → resolve the owning post → replace tokens → normalize values → construct query arguments → execute queries → render cards. The editor preview remains a metadata summary and does not run card queries.
+
+## Merge tokens
+
+| Token | Value |
+|---|---|
+| `%me%`, `%me->ID%` | ID of the post containing the block |
+| `%me-slug%`, legacy `%me->slug%` | Its slug |
+| `%mine->meta_key%` | Named metadata on that post |
+| Legacy `%mine%` | The filter's own metadata key in a filter value; the owner ID in `whose_family` |
+
+Replacement visits string values at any depth, including tokens embedded in longer text. Keys and non-string types remain intact. Unknown tokens remain literal. Replacement text is not expanded again. Metadata arrays use their first item, `WP_Post` values use their ID, and missing/non-scalar metadata becomes an empty string. `whose_family` requires an ID or `0`, so use ID-valued tokens there.
+
+Add another fixed token in `alphablock_get_tokens()` or extend its map without editing the template:
+
+```php
+add_filter('alphablock_tokens', function ($tokens, $post_id) {
+    $tokens['%abc%'] = get_post_meta($post_id, 'example_value', true);
+    return $tokens;
+}, 10, 2);
+```
+
+Custom map values must be scalar strings/numbers. The editor preserves raw JSON token values, including where a typed control cannot display them, until the author explicitly changes the corresponding field. Token names and metadata-key case are retained.
+
+## Queries
+
+The unselected Post type option is labelled **Any post type** and continues to store `null`. WordPress determines which registered post types participate in `any`; the block renders published posts only. Explicit post type keys remain literal. Existing blocks using a valid `story` key are not renamed to `stories`; use the actual registered key for each site.
+
+- **None:** base query using type, ordering and total.
+- **All:** every filter must match. With no filters, use the base query.
+- **Any:** at least one filter must match. With no filters, use the base query.
+- **Build:** ordered waterfall described below.
+- **Family:** additive selection of parents, children, siblings, uncles/aunties and grandparents. Reference `0` plus Children selects top-level posts. Existing hierarchy and exclusion rules are retained.
+
+### Build waterfall
+
+Each filter is an independent query. Results are sorted within that filter using the selected ordering, then appended in filter priority order. Subsequent queries exclude already selected IDs. Once the quota is full, no later filter query or CPT lookup runs. If the rows are exhausted early, return the posts found; do not run an unrestricted fallback.
+
+`total_posts: -1` removes the quota and processes all filters. With no filter rows, use the base query. Malformed rows are skipped rather than treated as a base query.
+
+In **Build only**, explicit inclusions have first priority, count towards the quota, retain their manual order and must be published. Exclusions win. In the other query modes, existing behaviour is retained: inclusions append after the main query's limit and can reintroduce an excluded post.
+
+### Filter types and comparisons
+
+The dropdown labels change without renaming existing stored types:
+
+| Label | Stored `filter_type` | Key and value |
+|---|---|---|
+| Persona Targets | `CPT` | Related-post field; target slug or ID. Use `field_name&lookup_post_type` for a different lookup type. |
+| Meta | `Meta` | Stored metadata key and value. Existing `relates_to` equality still matches whole IDs in relationship arrays. |
+| Post Attributes | `Post` | Supported post property and comparison value. |
+
+Comparisons are `=`, `!=`, `>`, `<`, `>=`, `<=`, `LIKE` and `NOT LIKE`. LIKE/NOT LIKE are substring comparisons. ACF multi-value relationship, checkbox and select fields commonly store serialized arrays: use LIKE to match a member. For a Meta string ID use a quoted value such as `"123"` to avoid matching `1234`. Persona Targets formats LIKE ID matches. Meta comparisons retain their existing WordPress storage semantics; numeric comparison types are not inferred automatically.
+
+Post Attributes supports `ID`, `author`, `parent`, `post_status`, `title`, `slug`, `date` and `modified`; native names such as `post_author`, `post_parent`, `post_title`, `post_name`, `post_date` and `post_modified` also work (`status` aliases `post_status`). IDs are nonnegative numbers and reject LIKE operators. Date values use `YYYY-MM-DD HH:MM:SS`. Invalid attributes/operators match no posts. Post status filters **do not broaden published-only visibility** or expose private/draft content. Any can combine attributes and metadata, including posts with no matching metadata rows.
 
 ### Related FAQs
 
-To show FAQs that refer to the page containing the block, set `post_type` to `faq`, `query_logic` to `All`, and add a Meta filter with `key: "relates_to"`, `compare_as: "="`, and `value: "%me%"`. The renderer resolves `%me%` to the containing page's ID, then queries FAQ metadata for that whole ID. It handles ACF relationships stored as serialized string or integer ID arrays, as well as a single ID. The key must be `relates_to`, matching the actual FAQ meta key.
+To show FAQs referring to the page containing the block:
 
-`%me%` always becomes the containing post ID, including in Meta, CPT and Family settings. In a filter, `%mine%` reads the filter's meta key on that post; if the field contains several values, it uses the first. For a key such as `topic&page`, it reads `topic`. A CPT lookup converts any numeric ID to a slug when it needs one, whether the ID came from a token or was hardcoded. Values come from the block's owning post, rather than the global `$post`.
+```json
+{
+  "post_type": "faq",
+  "query_logic": "All",
+  "filters": [
+    {"filter_type": "Meta", "key": "relates_to", "compare_as": "=", "value": "%me%"}
+  ]
+}
+```
 
-To add another token, add a separate labeled replacement block under `2. REPLACE TOKENS` in `alphablock/template.php`. Each token block calculates its replacement and applies `str_replace` to the configured values it supports. Normalization, preview, query construction and rendering begin at `3. PROCESS`; this phase does not inspect token names.
+Other saved card/layout properties remain as configured. A numeric literal ID and the resolved owner token build the same relationship query. The lookup uses the owning post, not an unrelated global post.
 
-### Updating existing Story blocks
+## Prompt
 
-For a site whose registered post type key is `stories`, change existing block JSON from `"post_type": "story"` to `"post_type": "stories"`, then save the page. This release changes the dropdown choice; it does not migrate saved blocks or rename registered post types. If the old dropdown remains, check whether the stored ACF field group needs syncing from the updated local JSON. Do not use the one-off hard-reset snippet to perform this update.
+The supplied 3.2.1 template contained no embedded prompt. `prompt.php` supplies a new default authoring prompt through the existing ACF Prompt textarea when that field is empty. Existing custom prompt text is preserved. It explains the current JSON format and features; it does not call an AI service. Customize the default through `alphablock_prompt`.
 
-## Dependencies
+## Dependencies and limits
 
-- WordPress and ACF PRO with support for the supplied block metadata (`apiVersion: 3`, ACF `blockVersion: 3`). Exact minimum versions have not been validated.
-- The shared AlphaSys ACF Blocks loader in the theme.
-- The theme’s `block_classes()` helper.
-- `Magic_Card::get_card()` and the `card` custom post type, including card templates stored in `card_markup` metadata.
-- Theme CSS and any JavaScript needed for card layouts. `block.json` references `style.css`, but that file was not present in the supplied archive and is not bundled here.
+Requires the existing theme loader, ACF PRO, `block_classes()`, `Magic_Card::get_card()`, card template posts and theme layout assets. Exact minimum WordPress/ACF versions have not been established. `block.json` references `style.css`, which was absent from the supplied archive and remains external.
 
-The shared loader, wrapper helper and Magic Card framework remain external dependencies. This repository does not include the one-off ACF database reset snippet.
+Card rendering, wrapper classes and layout markup are retained. `show_links` remains unused by the renderer. The shared Magic Card framework and wrapper helper are external dependencies; their separate known issues are not changed by this component release.
 
-## Structure
-
-- `alphablock/block.json`: registration metadata for `acf/alphablock`.
-- `alphablock/alphablock.json`: ACF field group.
-- `alphablock/block.php`: editor synchronisation between ACF fields and the JSON textarea.
-- `alphablock/template.php`: JSON configuration, runtime overrides, post queries and card rendering.
-
-## Behaviour
-
-The renderer reads the ACF `json` field, applies defaults, then applies runtime overrides from `$block['attrs']['data']`. Editors can change fields or edit the JSON representation.
-
-Queries support ordinary post selection, All/Any metadata and related-post filters, family relationships, ordering, and explicit includes/excludes. Layout settings cover Wrap, Swipe and Carousel for desktop and mobile. Cards are rendered using the selected card post’s slug.
-
-## Baseline limitations
-
-- `Build` currently executes the base query without additional filter-building logic.
-- `show_links` is configured but is not used by the supplied renderer.
-- The Prompt field is present; no prompt execution is implemented in these files.
-- The editor synchronisation script includes console diagnostics.
-- This release preserves the supplied implementation; it has not been integration-tested in a live WordPress theme.
-
-See [CHANGELOG.md](CHANGELOG.md) for release history.
+See [TESTING.md](TESTING.md) for validation, [CHANGELOG.md](CHANGELOG.md) for history, and [RELEASE_NOTES.md](RELEASE_NOTES.md) for this release's upgrade notes. ACF documents its local JSON synchronization rules in [Synchronized JSON](https://www.advancedcustomfields.com/resources/synchronized-json/).

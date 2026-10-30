@@ -1,0 +1,2 @@
+# Keep the supplied compatibility snapshot byte-for-byte, including its whitespace.
+tests/fixtures/template-3.2.1.php -whitespace

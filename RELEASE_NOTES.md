@@ -1,31 +1,32 @@
-AlphaBlock v3.2.0 orders the template into three clear phases: `1. GET RAW VALUES`, `2. REPLACE TOKENS`, and `3. PROCESS`. Raw values and owning post context are gathered first. Each token has an independent replacement block. Normalization, preview, query construction and rendering happen only after replacement, without checking whether a value came from a token. `%me%`, `%mine%` and numeric CPT ID conversion retain their v3.1.11 behavior.
+AlphaBlock v3.3.0 separates token resolution, conditional query construction and prompt guidance, adds the Build waterfall and Post Attributes filters, and clarifies the editor controls.
 
-### Related FAQs
+- `tokens.php`: one early replacement pass; `%me%`, `%me->ID%`, `%me-slug%`, `%mine->meta_key%`, and existing aliases/contextual `%mine%`.
+- `args.php`: existing query construction plus independent, ordered Build steps and scoped Post Attributes comparisons.
+- `prompt.php`: default authoring guidance for empty Prompt fields; saved custom prompts remain intact.
+- Post Query, Query Logic and Family guidance explain types, modes, comparisons, array matching and tokens.
+- Persona Targets keeps stored type `CPT`; Meta stays `Meta`; Post Attributes uses the new type `Post`.
+- Manual Selection replaces the two presentation tabs, retaining Include/Exclude field keys and JSON names.
+- Raw JSON tokens survive editor synchronization, including tokens that typed controls cannot represent.
 
-To list FAQs that refer to the page containing the block, configure:
+### Behaviour and compatibility
 
-```json
-{
-  "post_type": "faq",
-  "query_logic": "All",
-  "filters": [
-    {
-      "filter_type": "Meta",
-      "key": "relates_to",
-      "compare_as": "=",
-      "value": "%me%"
-    }
-  ]
-}
-```
+Existing None, All, Any and Family configurations are compared against the supplied 3.2.1 template; their query results and markup are retained in the regression fixtures. Existing field keys, JSON property names, null/any post type, card calls and layout markup remain supported.
 
-The key is `relates_to`, matching the FAQ meta field. The query matches the whole page ID in ACF relationship arrays or as a single ID. Other card and layout options can remain in the block JSON. A hardcoded ID such as `13196` builds the same query as `%me%` when the block is on post `13196`.
+**Build intentionally changes behaviour.** It previously ran the base query; it now fills the quota through filter rows in priority order. Manual inclusions have first priority and count towards the quota, with exclusions winning. Later rows never run once full. `-1` means unlimited. No rows means base-query fallback; exhausting configured filters does not trigger a fallback. Other modes retain their additive inclusion behaviour. Review existing saved Build blocks before deployment.
 
-### Installation
+Post Attributes supports IDs, author, parent, post status, title, slug, date and modified date. Public output remains restricted to published posts; status filters do not expose drafts or private content.
 
-Extract `as-alphablock-3.2.0.zip` into your active theme's `blocks/` directory, replacing the existing AlphaBlock files. This is a theme component requiring the shared AlphaSys block loader, ACF PRO, `block_classes()`, Magic Card and theme layout assets.
+### Install and rollback
+
+Back up the deployed folder and content, then extract `as-alphablock-3.3.0.zip` into the active theme's `blocks/` directory. **Replace the complete AlphaBlock folder: all seven files are required.** Sync the ACF field group from local JSON if needed to display the new layout. No content migration or destructive ACF reset is required.
+
+This remains a theme component requiring ACF PRO, the shared block loader, `block_classes()`, Magic Card and theme layout assets. No live site deployment is performed by this release.
+
+Rollback restores the previous complete folder. Restore saved configuration backups too if you have begun using the new Post Attributes filters or changed Build configurations.
 
 ### Validation
 
-- PHP syntax checks pass for both block PHP files; both block JSON files parse successfully.
-- Simulated renders verify that `%me%` becomes the owning post ID, `%mine%` reads owner meta, and token and literal IDs produce identical CPT, relationship and Family queries. Editor preview and malformed filter handling were also checked.
+- 92 WordPress/database assertions, including 40 complete render comparisons with supplied 3.2.1.
+- Five editor DOM/schema tests, including token preservation, JSON edits and saved field-key compatibility.
+- PHP syntax, JSON, whitespace and packaged-file integrity checks.
+- Query tests use a disposable WordPress install with the official SQLite integration; ACF, the theme wrapper and Magic Card are substituted in the harness. Editor tests use a simulated DOM. Live ACF PRO/theme layouts and production MySQL still require staging smoke tests.

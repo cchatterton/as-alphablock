@@ -110,7 +110,7 @@
             "allow_null": 1,
             "ui": 0,
             "ajax": 0,
-            "placeholder": ""
+            "placeholder": "Any post type"
         },
         {
             "key": "field_order_by",
@@ -184,6 +184,20 @@
             "placeholder": ""
         },
         {
+            "key": "field_alphablock_post_query_help",
+            "label": "Post query guidance",
+            "name": "",
+            "type": "message",
+            "wrapper": {
+                "width": "100",
+                "class": "",
+                "id": ""
+            },
+            "message": "<p><strong>Post type:</strong> leave unselected (Any post type) to query across post types, or select a type to restrict the results. Only published posts are rendered.</p>\n<ul>\n<li><strong>None:</strong> use the post type, ordering and total above, without additional filters.</li>\n<li><strong>All:</strong> match every filter on the Query Logic tab.</li>\n<li><strong>Any:</strong> match at least one filter on the Query Logic tab.</li>\n<li><strong>Build:</strong> work through filters from top to bottom, adding unique posts until the total posts quota is reached or the filters are exhausted. Each filter uses the selected ordering; results remain grouped by filter priority. A total of -1 processes all filters without a quota.</li>\n<li><strong>Family:</strong> select relatives of a reference post. Configure the relationships on the Family tab.</li>\n</ul>\n<p>All, Any and Build use the base query when no filters are configured. In Build, manual inclusions count towards the quota and exclusions take precedence. In other modes, manual inclusions are appended after the query limit, preserving existing behaviour.</p>",
+            "new_lines": "",
+            "esc_html": 0
+        },
+        {
             "key": "field_tab_query_logic",
             "label": "Query Logic",
             "name": "",
@@ -235,8 +249,9 @@
                     "name": "filter_type",
                     "type": "select",
                     "choices": {
-                        "CPT": "Related Post",
-                        "Meta": "Meta"
+                        "CPT": "Persona Targets",
+                        "Meta": "Meta",
+                        "Post": "Post Attributes"
                     },
                     "default_value": false,
                     "return_format": "value",
@@ -292,6 +307,20 @@
                     "append": ""
                 }
             ]
+        },
+        {
+            "key": "field_alphablock_query_logic_help",
+            "label": "Filter guidance",
+            "name": "",
+            "type": "message",
+            "wrapper": {
+                "width": "100",
+                "class": "",
+                "id": ""
+            },
+            "message": "<p><strong>Filter types</strong></p>\n<ul>\n<li><strong>Persona Targets:</strong> match through a related-post field. Key is the relationship field name; Value is the target post's slug or ID. Use <code>field_name&amp;post_type</code> when the lookup post type differs from the field name. The stored type remains <code>CPT</code>.</li>\n<li><strong>Meta:</strong> match a custom field or metadata value. Key is the stored field name and Value is the value to match.</li>\n<li><strong>Post Attributes:</strong> match a post property. Supported keys: <code>ID</code>, <code>author</code>, <code>parent</code>, <code>post_status</code>, <code>title</code>, <code>slug</code>, <code>date</code> and <code>modified</code>. Native names such as <code>post_author</code> and <code>post_parent</code> also work. Author and parent use numeric IDs; LIKE is for text attributes. Dates use <code>YYYY-MM-DD HH:MM:SS</code>. Post status filters still respect published-only rendering.</li>\n</ul>\n<p><strong>Compare As</strong></p>\n<ul>\n<li><strong>=:</strong> matches the complete stored value.</li>\n<li><strong>!=:</strong> does not match the complete stored value.</li>\n<li><strong>&gt; / &gt;=:</strong> greater than / greater than or equal to.</li>\n<li><strong>&lt; / &lt;=:</strong> less than / less than or equal to.</li>\n<li><strong>LIKE:</strong> contains the specified value.</li>\n<li><strong>NOT LIKE:</strong> does not contain the specified value.</li>\n</ul>\n<p><strong>ACF arrays:</strong> relationship, checkbox and multi-select fields commonly store serialized arrays. Use LIKE to find a member; = normally compares the entire stored value. In a Meta filter for a string ID, use double quotes, for example <code>\"123\"</code>, to avoid matching 1234. Persona Targets formats LIKE ID matches for you. The existing relates_to equality filter also handles relationship ID arrays. Single-value text fields can use = for an exact match. Meta ordering comparisons use WordPress's existing stored-value comparison; they do not automatically select a numeric type.</p>\n<p><strong>Values and order:</strong> supported merge tokens can be used in Value. All requires every filter; Any requires at least one; Build processes rows in order until the quota is filled. Drag rows to change Build priority.</p>",
+            "new_lines": "",
+            "esc_html": 0
         },
         {
             "key": "field_tab_show_posts",
@@ -450,7 +479,7 @@
             "label": "Whose family?",
             "name": "whose_family",
             "type": "text",
-            "instructions": "Use %me% for the current page, 0 for the hierarchy root, or enter a post ID.",
+            "instructions": "",
             "wrapper": {
                 "width": "25",
                 "class": "",
@@ -484,8 +513,22 @@
             "default_value": []
         },
         {
+            "key": "field_alphablock_family_help",
+            "label": "Family and merge tokens",
+            "name": "",
+            "type": "message",
+            "wrapper": {
+                "width": "100",
+                "class": "",
+                "id": ""
+            },
+            "message": "<p>Choose the reference post in Whose family?, then select one or more relationships to display. Enter a post ID, use an owner ID token below, or use <code>0</code> for the hierarchy root. Children of <code>0</code> are top-level posts.</p>\n<p>Merge tokens are replaced before the block is processed. They can be used in string values throughout the block configuration, including within longer text.</p>\n<ul>\n<li><code>%me%</code> or <code>%me-&gt;ID%</code>: the ID of the post containing this block.</li>\n<li><code>%me-slug%</code>: the slug of that post. The existing <code>%me-&gt;slug%</code> spelling also works.</li>\n<li><code>%mine-&gt;meta_key%</code>: a metadata value on that post. Replace <code>meta_key</code> with the actual field name, for example <code>%mine-&gt;related_parent%</code>. For multiple values, the first item is used; a missing value becomes empty.</li>\n</ul>\n<p>Whose family? needs an ID or <code>0</code>, so use an ID token or metadata containing a post ID here. Slug tokens are for settings that accept text or slugs.</p>\n<p>Legacy <code>%mine%</code> remains supported: in Whose family? it means the owning post ID; in a filter value it reads that filter's metadata key on the owning post. Unknown tokens remain unchanged.</p>",
+            "new_lines": "",
+            "esc_html": 0
+        },
+        {
             "key": "field_tab_includes",
-            "label": "Includes",
+            "label": "Manual Selection",
             "name": "",
             "type": "tab",
             "wrapper": {
@@ -521,20 +564,6 @@
             "ui": 1
         },
         {
-            "key": "field_tab_excludes",
-            "label": "Excludes",
-            "name": "",
-            "type": "tab",
-            "wrapper": {
-                "width": "",
-                "class": "",
-                "id": ""
-            },
-            "placement": "top",
-            "endpoint": 0,
-            "selected": 0
-        },
-        {
             "key": "field_exclude_posts",
             "label": "Exclude Posts",
             "name": "exclude_posts",
@@ -556,6 +585,20 @@
                 "featured_image"
             ],
             "ui": 1
+        },
+        {
+            "key": "field_alphablock_manual_help",
+            "label": "Manual selection guidance",
+            "name": "",
+            "type": "message",
+            "wrapper": {
+                "width": "100",
+                "class": "",
+                "id": ""
+            },
+            "message": "<p>Include Posts adds explicitly selected posts; Exclude Posts removes posts from the automatic query. In Build, inclusions have first priority and count towards the total quota; exclusions always win. Other modes retain their existing behaviour: inclusions are appended after the limit and can reintroduce an excluded post.</p>",
+            "new_lines": "",
+            "esc_html": 0
         },
         {
             "key": "field_tab_prompt",
@@ -627,5 +670,6 @@
             }
         ]
     ],
-    "active": true
+    "active": true,
+    "modified": 1793318400
 }

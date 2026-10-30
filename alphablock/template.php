@@ -3,10 +3,12 @@
  * File: AlphaBlock
  *
  * @subpackage Blocks
- * @version    3.2.0
+ * @version    3.3.0
  * @author     Chris Chatterton
  *
  * Release Notes:
+ * 3.3.0 20261030: Extract tokens/args, add waterfall Build and Post Attributes.
+ * 3.2.1 20261029: Replace %me% and %me->slug% throughout input values in one pass.
  * 3.2.0 20261025: Separate raw values, token replacement and processing.
  * 3.1.11 20261025: Give each token its own independent replacement block.
  * 3.1.10 20261025: Replace %me% with an ID and %mine% with owner meta before queries.
@@ -380,78 +382,10 @@ if (!$alphablock_post_type) {
 
 /* ================================================================
  * 2. REPLACE TOKENS
- * Add new tokens as separate blocks here. Each block calculates its own
- * replacement and updates the values that may contain that token.
+ * Resolve all configured string values once, using the owning post context.
  * ================================================================ */
-
-/* Invalid filters contain no token values to replace. */
-if (!is_array($block_values['filters'])) {
-	$block_values['filters'] = [];
-}
-
-/* %me%: the ID of the post containing this block. */
-$block_values['whose_family'] = str_replace(
-	'%me%',
-	(string) $alphablock_post_id,
-	is_scalar($block_values['whose_family'])
-		? (string) $block_values['whose_family']
-		: '%me%'
-);
-
-foreach ($block_values['filters'] as &$filter) {
-	if (!is_array($filter) || !is_string($filter['value'] ?? null)) {
-		continue;
-	}
-	$filter['value'] = str_replace(
-		'%me%',
-		(string) $alphablock_post_id,
-		$filter['value']
-	);
-}
-unset($filter);
-
-/* %mine%: read this filter's meta key on the post containing the block. */
-/* Legacy Family values use %mine% as another spelling of %me%. */
-$block_values['whose_family'] = str_replace(
-	'%mine%',
-	(string) $alphablock_post_id,
-	(string) $block_values['whose_family']
-);
-
-foreach ($block_values['filters'] as &$filter) {
-	if (
-		!is_array($filter) ||
-		!is_string($filter['value'] ?? null) ||
-		strpos($filter['value'], '%mine%') === false
-	) {
-		continue;
-	}
-
-	$mine = '';
-	if ($alphablock_post_id) {
-		/* For key "topic&page", read the "topic" meta field. */
-		$filter_key = $filter['key'] ?? '';
-		$meta_key = is_scalar($filter_key)
-			? trim(explode('&', (string) $filter_key, 2)[0])
-			: '';
-		if ($meta_key !== '') {
-			$mine = get_post_meta($alphablock_post_id, $meta_key, true);
-			if (is_array($mine)) {
-				$mine = reset($mine);
-			}
-			if ($mine instanceof WP_Post) {
-				$mine = $mine->ID;
-			}
-		}
-	}
-
-	$filter['value'] = str_replace(
-		'%mine%',
-		is_scalar($mine) ? (string) $mine : '',
-		$filter['value']
-	);
-}
-unset($filter);
+require_once __DIR__ . '/tokens.php';
+$block_values = alphablock_replace_tokens($block_values, $alphablock_post_id);
 
 /* ================================================================
  * 3. PROCESS
@@ -669,416 +603,59 @@ echo "\n"
 
 $wrapper = ob_get_clean();
 
-/*
- * Build the shared WordPress query. Query logic below can add meta clauses,
- * post IDs or family relationships before get_posts() runs.
- */
+/* Query construction uses normalized values after token resolution. */
+require_once __DIR__ . '/args.php';
+$query_plan = alphablock_build_args($block_values);
 $total_posts = $block_values['total_posts'];
 
-/* Random mode fetches all candidates so PHP can shuffle before limiting. */
-if ($block_values['order_by'] === 'rand') {
-	$block_values['total_posts'] = -1;
-}
-
-/* The - Select - choice stores null and means any post type. */
-$query_post_type = $block_values['post_type'] ?: 'any';
-
-$args = [
-	'posts_per_page'   =>
-		$block_values['total_posts'],
-
-	'post_type'        =>
-		$query_post_type,
-
-	'post_status'      =>
-		'publish',
-
-	'order'            =>
-		$block_values['sort_order'],
-
-	'orderby'          =>
-		$block_values['order_by'],
-
-	'post__not_in'     =>
-		$block_values['exclude_posts'],
-
-	'suppress_filters' =>
-		false,
-];
-
-/*
- * Build filter clauses from the values already resolved above. The
- * relationship field stores a list of IDs, so equality must match a whole ID
- * in that list for literal and resolved values alike.
- */
-$query_logic = strtolower((string) $block_values['query_logic']);
-$resolved_filter_clauses = [];
-$filters_to_resolve = in_array($query_logic, ['all', 'any'], true)
-	? $block_values['filters']
-	: [];
-
-foreach ($filters_to_resolve as $condition) {
-	if (!is_array($condition)) {
-		continue;
-	}
-
-	$condition = array_replace(
-		[
-			'filter_type' => 'Meta',
-			'key'         => '',
-			'compare_as'  => '=',
-			'value'       => '',
-		],
-		$condition
-	);
-
-	if (!is_scalar($condition['key']) || trim((string) $condition['key']) === '') {
-		continue;
-	}
-
-	/* CPT keys may include a separate lookup type: meta_key&post_type. */
-	$keys = explode('&', (string) $condition['key'], 2);
-	$key_1 = trim($keys[0]);
-	$key_2 = isset($keys[1]) ? trim($keys[1]) : $key_1;
-	$filter_type = (string) $condition['filter_type'];
-	$compare = strtoupper((string) $condition['compare_as']);
-	$value = $condition['value'];
-
-	if ($filter_type === 'CPT') {
-		/* CPT lookup needs a slug; convert numeric IDs from any source. */
-		if (is_scalar($value) && ctype_digit((string) $value)) {
-			$slug = get_post_field('post_name', (int) $value);
-			if (is_string($slug) && $slug !== '') {
-				$value = $slug;
-			}
-		}
-
-		/* Resolve the slug to a post ID before building the main query. */
-		$matches = $value !== ''
-			? get_posts([
-				'name'        => $value,
-				'post_type'   => $key_2,
+if ($query_plan['mode'] === 'build') {
+	$total_posts = $total_posts === -1 ? -1 : max(0, $total_posts);
+	/* Manual inclusions have first priority and consume the waterfall quota. */
+	$pids = [];
+	if ($total_posts !== 0 && $block_values['include_posts']) {
+		$manual_ids = array_values(array_diff($block_values['include_posts'], $block_values['exclude_posts']));
+		if ($manual_ids) {
+			$pids = get_posts([
+				'post__in' => $manual_ids,
+				'post_type' => array_values(array_unique(array_filter(array_map('get_post_type', $manual_ids)))),
 				'post_status' => 'publish',
-				'numberposts' => 1,
-				'fields'      => 'ids',
-			])
-			: [];
-
-		$resolved_filter_clauses[] = $matches
-			? [
-				'key'     => $key_1,
-				'value'   => $compare === 'LIKE'
-					? sprintf(':"%s";', $matches[0])
-					: $matches[0],
-				'compare' => $compare,
-			]
-			: [
-				'key'     => $key_1,
-				'value'   => '__alphablock_unmatched_cpt__',
-				'compare' => '=',
-			];
-		continue;
-	}
-
-	if ($filter_type !== 'Meta') {
-		continue;
-	}
-
-	if (
-		$key_1 === 'relates_to' &&
-		$compare === '=' &&
-		is_scalar($value) &&
-		ctype_digit((string) $value)
-	) {
-		/* ACF relationship IDs may be serialized as strings or integers. */
-		$value = (int) $value;
-		$resolved_filter_clauses[] = $value > 0
-			? [
-				'relation' => 'OR',
-				[
-					'key' => $key_1,
-					'value' => '"' . $value . '"',
-					'compare' => 'LIKE',
-				],
-				[
-					'key' => $key_1,
-					'value' => 'i:' . $value . ';',
-					'compare' => 'LIKE',
-				],
-				[
-					'key' => $key_1,
-					'value' => $value,
-					'compare' => '=',
-				],
-			]
-			: [
-				'key' => $key_1,
-				'value' => '__alphablock_no_owner__',
-				'compare' => '=',
-			];
-		continue;
-	}
-
-	/* Ordinary Meta values compare directly after token resolution. */
-	$resolved_filter_clauses[] = [
-		'key'     => $key_1,
-		'value'   => $value,
-		'compare' => $compare,
-	];
-}
-
-$posts = [];
-
-/* None/Build use the base query; All/Any add filters; Family uses hierarchy. */
-switch ($query_logic) {
-	case 'none':
-		$posts = get_posts($args);
-		break;
-
-	case 'all':
-	case 'any':
-		/* All combines filter clauses with AND; Any combines them with OR. */
-		$all_any = $query_logic === 'all' ? 'AND' : 'OR';
-
-		if ($resolved_filter_clauses) {
-			$args['meta_query'] = array_merge(
-				['relation' => $all_any],
-				$resolved_filter_clauses
-			);
-		}
-
-		$posts = get_posts($args);
-		break;
-
-	case 'build':
-		/* Build is currently the base query, without filter-building logic. */
-		$posts = get_posts($args);
-		break;
-
-	case 'family':
-		/*
-		 * ACF returns the Family checkbox as an array.
-		 * Several relationships may be selected at once.
-		 */
-		$selected_family = array_values(
-			array_intersect(
-				[
-					'parents',
-					'children',
-					'uncles_aunties',
-					'siblings',
-					'grandparents',
-				],
-				array_map(
-					'sanitize_key',
-					(array) $block_values['family']
-				)
-			)
-		);
-
-		/*
-		 * Use the resolved whose_family reference rather than whichever
-		 * post happens to be stored in the global $post variable.
-		 */
-		$current_post_id = (int) $block_values['whose_family'];
-
-		$parent_id =
-			$current_post_id
-				? (int) wp_get_post_parent_id(
-					$current_post_id
-				)
-				: 0;
-
-		$grandparent_id =
-			$parent_id
-				? (int) wp_get_post_parent_id(
-					$parent_id
-				)
-				: 0;
-
-		$family_post_ids  = [];
-		$family_post_type = $args['post_type'];
-
-		/*
-		 * Return the direct published children of a post.
-		 *
-		 * A parent value of 0 intentionally returns top-level posts.
-		 */
-		$get_children = static function (
-			$parent_post_id
-		) use (
-			$family_post_type
-		) {
-			return get_posts([
-				'fields'           => 'ids',
-				'posts_per_page'   => -1,
-				'post_type'        => $family_post_type,
-				'post_status'      => 'publish',
-				'post_parent'      => (int) $parent_post_id,
-				'suppress_filters' => false,
+				'posts_per_page' => $total_posts === -1 ? -1 : max(0, $total_posts),
+				'orderby' => 'post__in', 'fields' => 'ids', 'suppress_filters' => false,
 			]);
-		};
-
-		/* Collect the requested relatives as post IDs. */
-		if (
-			in_array(
-				'parents',
-				$selected_family,
-				true
-			) &&
-			$parent_id
-		) {
-			$family_post_ids[] = $parent_id;
 		}
-
-		if (
-			in_array(
-				'children',
-				$selected_family,
-				true
-			)
-		) {
-			$family_post_ids = array_merge(
-				$family_post_ids,
-				$get_children($current_post_id)
-			);
-		}
-
-		if (
-			in_array(
-				'siblings',
-				$selected_family,
-				true
-			) &&
-			$parent_id
-		) {
-			$sibling_ids = $get_children(
-				$parent_id
-			);
-
-			$family_post_ids = array_merge(
-				$family_post_ids,
-				array_diff(
-					$sibling_ids,
-					[$current_post_id]
-				)
-			);
-		}
-
-		if (
-			in_array(
-				'uncles_aunties',
-				$selected_family,
-				true
-			) &&
-			$parent_id &&
-			$grandparent_id
-		) {
-			$parent_sibling_ids = $get_children(
-				$grandparent_id
-			);
-
-			$family_post_ids = array_merge(
-				$family_post_ids,
-				array_diff(
-					$parent_sibling_ids,
-					[
-						$parent_id,
-						$current_post_id,
-					]
-				)
-			);
-		}
-
-		if (
-			in_array(
-				'grandparents',
-				$selected_family,
-				true
-			) &&
-			$grandparent_id
-		) {
-			$family_post_ids[] = $grandparent_id;
-		}
-
-		$family_post_ids = array_values(
-			array_unique(
-				array_filter(
-					array_map(
-						'intval',
-						$family_post_ids
-					)
-				)
-			)
-		);
-
-		/*
-		 * Remove the reference post and configured exclusions.
-		 */
-		$family_post_ids = array_values(
-			array_diff(
-				$family_post_ids,
-				array_merge(
-					[$current_post_id],
-					$block_values['exclude_posts']
-				)
-			)
-		);
-
-		/*
-		 * An empty post__in array would return every post.
-		 */
-		if (empty($family_post_ids)) {
-			$posts = [];
+	}
+	foreach ($query_plan['steps'] as $condition) {
+		$gap = $total_posts === -1 ? -1 : max(0, $total_posts - count($pids));
+		if ($gap === 0) {
 			break;
 		}
-
-		$args['post__in'] = $family_post_ids;
-
-		/*
-		 * Exclusions were already removed from post__in.
-		 */
-		unset($args['post__not_in']);
-
+		$args = alphablock_build_step_args($query_plan['args'], $condition, $gap, $pids);
+		if ($args === null) {
+			continue;
+		}
 		$posts = get_posts($args);
-		break;
-
-	default:
-		$posts = get_posts($args);
-		break;
-}
-
-/* Apply the final order and total_posts limit to the retrieved posts. */
-if ($block_values['order_by'] === 'rand') {
-	shuffle($posts);
-}
-
-$max_posts =
-	$total_posts === -1
-		? count($posts)
-		: max(0, $total_posts);
-
-$pids = array_map(
-	static function ($queried_post) {
+		foreach ($posts as $selected_post) {
+			if (!in_array($selected_post->ID, $pids, true)) {
+				$pids[] = $selected_post->ID;
+			}
+			if ($total_posts !== -1 && count($pids) >= max(0, $total_posts)) {
+				break;
+			}
+		}
+	}
+} else {
+	/* Preserve 3.2.1 sorting, limiting and additive inclusions in existing modes. */
+	$posts = $query_plan['empty'] ? [] : get_posts($query_plan['args']);
+	if ($block_values['order_by'] === 'rand') {
+		shuffle($posts);
+	}
+	$max_posts = $total_posts === -1 ? count($posts) : max(0, $total_posts);
+	$pids = array_map(static function ($queried_post) {
 		return $queried_post->ID;
-	},
-	array_slice(
-		$posts,
-		0,
-		$max_posts
-	)
-);
-
-/* Explicit inclusions are appended after the limit and deduplicated. */
-if (!empty($block_values['include_posts'])) {
-	$pids = array_values(
-		array_unique(
-			array_merge(
-				$pids,
-				$block_values['include_posts']
-			)
-		)
-	);
+	}, array_slice($posts, 0, $max_posts));
+	if (!empty($block_values['include_posts'])) {
+		$pids = array_values(array_unique(array_merge($pids, $block_values['include_posts'])));
+	}
 }
 
 /* Convert desktop/mobile layout settings into CSS classes and row width. */
