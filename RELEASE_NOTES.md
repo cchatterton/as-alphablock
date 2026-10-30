@@ -1,18 +1,12 @@
-AlphaBlock v3.3.1 corrects the NLP request input introduced in v3.3.0.
+Restore the tab label to **Prompt**, as originally intended. The request input remains empty, with its example as placeholder text. The system instructions remain separate.
 
-- The NLP tab's **Your request** textarea starts empty. The example is placeholder text, not a saved value.
-- System instructions remain separately in `prompt.php`; they are no longer used to pre-populate the request field.
-- If v3.3.0 saved an exact copy of those generated instructions in the request field, the editor clears that exact value on load. Normal user requests are preserved; saving the block persists the correction.
-- Existing `field_prompt` / `prompt` storage keys remain intact. Query, token and card output are unchanged.
+### File-by-file update from v3.3.1
 
-### Installation
+- `alphablock/alphablock.json`: restores the tab label and advances the ACF JSON modification timestamp.
+- `alphablock/block.json`: updates the component version to 3.3.2.
 
-Replace the complete `blocks/alphablock/` folder with the folder in `as-alphablock-3.3.1.zip`. Sync the ACF field group from local JSON if needed to show the new label and placeholder. Reload the editor; save affected blocks if the old generated text was previously persisted. No live-site deployment or database-wide rewrite is performed.
-
-### NLP integration status
-
-The supplied component has no NLP-to-JSON request handler or AI API connection. This patch separates the author's input from the system instructions; typing a request alone does not yet generate JSON. An authoring integration must connect the two, resolve the selected card's actual ID and apply the returned configuration.
+No PHP files changed. Upload the updated JSON files and sync the ACF field group if the old label remains.
 
 ### Validation
 
-95 WordPress/database assertions, including the 40 supplied-3.2.1 render comparisons, plus six editor/schema tests. PHP syntax, JSON and release ZIP integrity checks pass. Tests use disposable WordPress/SQLite and simulated editor fields; live ACF PRO/theme integration still requires staging checks.
+All six editor/schema tests pass. Both JSON files parse and the published ZIP is checked against the repository source. Query/rendering code is unchanged from the v3.3.1 build, which passed 95 WordPress/database checks, including 40 render comparisons against supplied 3.2.1.

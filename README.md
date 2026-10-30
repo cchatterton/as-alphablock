@@ -2,16 +2,16 @@
 
 AlphaSys's ACF-based WordPress theme block for querying posts and rendering reusable Magic Card templates.
 
-## Version 3.3.1
+## Version 3.3.2
 
-Version 3.3 adds separate token resolution, query construction and authoring guidance in `tokens.php`, `args.php` and `prompt.php`. Patch 3.3.1 corrects the NLP input so system instructions never pre-populate the request. It adds the Build waterfall and Post Attributes filters, and explains the controls in the editor. The compatibility baseline is the supplied template **3.2.1**; existing None, All, Any and Family behaviour is retained for their existing configurations.
+Version 3.3 adds separate token resolution, query construction and authoring guidance in `tokens.php`, `args.php` and `prompt.php`. Patch 3.3.1 keeps system instructions out of the request input; patch 3.3.2 restores the tab label to Prompt. It adds the Build waterfall and Post Attributes filters, and explains the controls in the editor. The compatibility baseline is the supplied template **3.2.1**; existing None, All, Any and Family behaviour is retained for their existing configurations.
 
 **Build changes behaviour:** it previously ran the base query. With filter rows it now fills a quota in filter priority order. Review existing blocks using Build before deployment. Existing saved JSON does not need a schema migration.
 
 ## Installation and upgrade
 
 1. Back up the currently deployed `blocks/alphablock/` folder and the content/configuration being edited.
-2. Download `as-alphablock-3.3.1.zip` from the GitHub release.
+2. Download `as-alphablock-3.3.2.zip` from the GitHub release.
 3. Extract the complete `alphablock/` folder into your active theme's `blocks/` directory, replacing the existing files. Deploy **all seven files together**; the template and editor require the new helpers.
 4. Keep the shared AlphaSys theme loader that loads ACF JSON and registers `blocks/*/block.json`.
 5. Sync the AlphaBlock ACF field group from local JSON if the editor still shows the old layout. Its field-group key and saved field keys are preserved; its modification timestamp is updated. Do not use the old destructive ACF hard-reset snippet.
@@ -107,7 +107,7 @@ Other saved card/layout properties remain as configured. A numeric literal ID an
 
 ## NLP request and system instructions
 
-The NLP tab's **Your request** textarea is for the author's natural-language request. It starts empty; an example such as "Show all posts with state = nsw using the news card. Carousel on desktop, swipe on mobile." appears only as placeholder text. The saved ACF field key `field_prompt` and name `prompt` are unchanged.
+The Prompt tab's **Your request** textarea is for the author's natural-language request. It starts empty; an example such as "Show all posts with state = nsw using the news card. Carousel on desktop, swipe on mobile." appears only as placeholder text. The saved ACF field key `field_prompt` and name `prompt` are unchanged.
 
 `prompt.php` holds the separate system instructions returned by `alphablock_get_prompt()`; customize them through `alphablock_prompt`. They are never inserted as the author's request. If v3.3.0 saved an exact copy of the generated system instructions in that field, the load filter clears that value in the editor; it is persisted as empty on the next normal save. Other saved request text remains intact. No database-wide rewrite is performed.
 

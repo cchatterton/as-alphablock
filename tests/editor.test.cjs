@@ -115,7 +115,7 @@ test('JSON edits and blur retain the token spelling and Post filter value', asyn
 
 test('NLP request input is blank by default and its example is only a placeholder', () => {
   const field = group.fields.find(field => field.key === 'field_prompt');
-  assert.equal(group.fields.find(field => field.key === 'field_tab_prompt').label, 'NLP');
+  assert.equal(group.fields.find(field => field.key === 'field_tab_prompt').label, 'Prompt');
   assert.equal(field.name, 'prompt');
   assert.equal(field.label, 'Your request');
   assert.equal(field.default_value, '');

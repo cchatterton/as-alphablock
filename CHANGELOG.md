@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.3.2 — 2026-10-30
+
+- Restore the tab label to Prompt. Keep the request input empty and retain the example placeholder.
+- No PHP, query, token or card-rendering changes.
+
 ## 3.3.1 — 2026-10-30
 
 - Keep the NLP request textarea empty rather than inserting system instructions.

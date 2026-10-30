@@ -602,7 +602,7 @@
         },
         {
             "key": "field_tab_prompt",
-            "label": "NLP",
+            "label": "Prompt",
             "name": "",
             "type": "tab",
             "wrapper": {
@@ -672,5 +672,5 @@
         ]
     ],
     "active": true,
-    "modified": 1793342953
+    "modified": 1793343221
 }
