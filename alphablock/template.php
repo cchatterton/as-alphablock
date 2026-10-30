@@ -3,10 +3,11 @@
  * File: AlphaBlock
  *
  * @subpackage Blocks
- * @version    3.3.0
+ * @version    3.3.3
  * @author     Chris Chatterton
  *
  * Release Notes:
+ * 3.3.3 20261030: Add opt-in JSON debug flag for final query arguments.
  * 3.3.0 20261030: Extract tokens/args, add waterfall Build and Post Attributes.
  * 3.2.1 20261029: Replace %me% and %me->slug% throughout input values in one pass.
  * 3.2.0 20261025: Separate raw values, token replacement and processing.
@@ -96,6 +97,7 @@ $block_defaults = [
 	'family'        => [],
 	'include_posts' => [],
 	'exclude_posts' => [],
+	'debug'         => 0,
 ];
 
 $block_values = array_replace(
@@ -478,6 +480,9 @@ $block_values['posts_per_row'] = max(
 	(int) $block_values['posts_per_row']
 );
 
+// Debug is opt-in through JSON (or a runtime override), never inferred as truthy.
+$block_values['debug'] = in_array($block_values['debug'], [1, '1'], true) ? 1 : 0;
+
 /* The selected Card post supplies the slug used by Magic_Card below. */
 $card_id = (int) $block_values['card'];
 
@@ -615,13 +620,17 @@ if ($query_plan['mode'] === 'build') {
 	if ($total_posts !== 0 && $block_values['include_posts']) {
 		$manual_ids = array_values(array_diff($block_values['include_posts'], $block_values['exclude_posts']));
 		if ($manual_ids) {
-			$pids = get_posts([
+			$args = [
 				'post__in' => $manual_ids,
 				'post_type' => array_values(array_unique(array_filter(array_map('get_post_type', $manual_ids)))),
 				'post_status' => 'publish',
 				'posts_per_page' => $total_posts === -1 ? -1 : max(0, $total_posts),
 				'orderby' => 'post__in', 'fields' => 'ids', 'suppress_filters' => false,
-			]);
+			];
+			if ($block_values['debug'] === 1) {
+				pre_dump($args);
+			}
+			$pids = get_posts($args);
 		}
 	}
 	foreach ($query_plan['steps'] as $condition) {
@@ -632,6 +641,9 @@ if ($query_plan['mode'] === 'build') {
 		$args = alphablock_build_step_args($query_plan['args'], $condition, $gap, $pids);
 		if ($args === null) {
 			continue;
+		}
+		if ($block_values['debug'] === 1) {
+			pre_dump($args);
 		}
 		$posts = get_posts($args);
 		foreach ($posts as $selected_post) {
@@ -645,7 +657,11 @@ if ($query_plan['mode'] === 'build') {
 	}
 } else {
 	/* Preserve 3.2.1 sorting, limiting and additive inclusions in existing modes. */
-	$posts = $query_plan['empty'] ? [] : get_posts($query_plan['args']);
+	$args = $query_plan['args'];
+	if ($block_values['debug'] === 1) {
+		pre_dump($args);
+	}
+	$posts = $query_plan['empty'] ? [] : get_posts($args);
 	if ($block_values['order_by'] === 'rand') {
 		shuffle($posts);
 	}

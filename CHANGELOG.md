@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.3.3 — 2026-10-30
+
+- Add JSON-only debug with a default of 0. Setting it to 1 calls the theme pre_dump function on final query arguments.
+- Dump each executed Build query, including manual inclusions; retain the default-off editor preview.
+- Preserve the manual debug setting during JSON/field synchronization.
+- Retain the Prompt tab label and the empty request input.
+
 ## 3.3.2 — 2026-10-30
 
 - Restore the tab label to Prompt. Keep the request input empty and retain the example placeholder.

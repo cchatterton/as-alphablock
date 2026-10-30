@@ -122,7 +122,8 @@ add_action('admin_footer', function () {
 					writingJson: false,
 					fieldsTimer: null,
 					jsonTimer: null,
-					tokenValues: {}
+					tokenValues: {},
+					debug: 0
 				};
 
 				blockStates.set(block, state);
@@ -472,7 +473,8 @@ add_action('admin_footer', function () {
 				exclude_posts: readField(
 					block,
 					FIELD_MAP.exclude_posts
-				)
+				),
+				debug: getState(block).debug
 			};
 			// Typed ACF controls cannot represent every JSON token (e.g. a range).
 			// Keep those raw values until the author explicitly edits that field.
@@ -483,7 +485,7 @@ add_action('admin_footer', function () {
 			return data;
 		}
 
-		function rememberTokenValues(block, data) {
+		function rememberJsonValues(block, data) {
 			function containsToken(value) {
 				if (typeof value === 'string') {
 					return /%[^%]+%/.test(value);
@@ -499,7 +501,10 @@ add_action('admin_footer', function () {
 					remembered[name] = data[name];
 				}
 			});
-			getState(block).tokenValues = remembered;
+			var state = getState(block);
+			state.tokenValues = remembered;
+			// JSON-only option: retain it without adding an ACF control.
+			state.debug = data.debug === 1 || data.debug === '1' ? 1 : 0;
 		}
 
 		function getJsonTextarea(block) {
@@ -969,7 +974,7 @@ add_action('admin_footer', function () {
 				}
 
 				markJsonValid(textarea);
-				rememberTokenValues(block, data);
+				rememberJsonValues(block, data);
 				applyJsonToFields(block, data);
 
 				if (formatAfterApply) {
@@ -1078,7 +1083,7 @@ add_action('admin_footer', function () {
 			try {
 				var initialData = JSON.parse(jsonTextarea.value);
 				if (initialData && typeof initialData === 'object' && !Array.isArray(initialData)) {
-					rememberTokenValues(block, initialData);
+					rememberJsonValues(block, initialData);
 				}
 			} catch (error) {
 				// Empty/legacy JSON still bootstraps from the existing field controls.

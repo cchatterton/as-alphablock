@@ -34,6 +34,12 @@ if (!function_exists('get_field')) {
 	function get_field($key) { return $GLOBALS['ab_raw_json']; }
 }
 function block_classes() { return 'existing-theme-class'; }
+function pre_dump($value) {
+	$GLOBALS['ab_dumps'][] = $value;
+	echo '<pre class="test-debug">';
+	var_dump($value);
+	echo '</pre>';
+}
 if (!class_exists('Magic_Card')) {
 class Magic_Card {
 	public static function get_card($slug, $id) {
@@ -60,6 +66,7 @@ function ab_filter($key, $value, $compare = '=', $type = 'Meta') {
 function ab_render($file, array $values, array $options = []) {
 	$GLOBALS['ab_raw_json'] = $options['raw_json'] ?? wp_json_encode($values);
 	$GLOBALS['ab_card_ids'] = [];
+	$GLOBALS['ab_dumps'] = [];
 	$block = ['id' => 'compatibility-test', 'attrs' => ['data' => $options['runtime'] ?? []]];
 	$is_preview = $options['preview'] ?? false;
 	$post_id = $options['owner'] ?? $GLOBALS['ab_owner'];
@@ -71,7 +78,7 @@ function ab_render($file, array $values, array $options = []) {
 	$_REQUEST = [];
 	ob_start();
 	try { include $file; } catch (Throwable $error) { ob_end_clean(); throw $error; }
-	return ['html' => ob_get_clean(), 'ids' => $GLOBALS['ab_card_ids']];
+	return ['html' => ob_get_clean(), 'ids' => $GLOBALS['ab_card_ids'], 'dumps' => $GLOBALS['ab_dumps']];
 }
 register_post_type('stories', ['public' => true, 'hierarchical' => true]);
 register_post_type('story', ['public' => true]);
@@ -255,4 +262,28 @@ ab_same('', apply_filters('acf/load_value/key=field_prompt', null), 'unset NLP i
 ab_same('', apply_filters('acf/load_value/key=field_prompt', alphablock_get_prompt()), 'remove exact system instructions accidentally saved by 3.3.0');
 $request = 'Get all posts with state=nsw and the news card; Carousel desktop and Swipe mobile.';
 ab_same($request, apply_filters('acf/load_value/key=field_prompt', $request), 'preserve actual NLP request');
+// Debug prints only the final arguments, using the theme-provided function.
+$without_debug = ab_render($new, $base);
+$debug_render = ab_render($new, array_replace($base, ['debug' => 1]));
+ab_same([], $without_debug['dumps'], 'debug is off by default');
+ab_same([], ab_render($new, array_replace($base, ['debug' => 0]))['dumps'], 'explicit debug zero is off');
+ab_same([], ab_render($new, array_replace($base, ['debug' => true]))['dumps'], 'truthy values do not enable debug');
+ab_same(1, count($debug_render['dumps']), 'debug dumps one final main query');
+ab_same($without_debug['ids'], $debug_render['ids'], 'debug does not change selected cards');
+ab_same(true, str_contains($debug_render['html'], '<pre class="test-debug">'), 'theme dump is output on the page');
+ab_same('stories', $debug_render['dumps'][0]['post_type'], 'debug shows final post type');
+ab_same(3, $debug_render['dumps'][0]['posts_per_page'], 'debug shows final limit');
+ab_same(1, count(ab_render($new, array_replace($base, ['debug' => '1']))['dumps']), 'string one enables debug');
+ab_same(1, count(ab_render($new, $base, ['runtime' => ['debug' => 1]])['dumps']), 'runtime debug override');
+ab_same([], ab_render($new, array_replace($base, ['debug' => 1]), ['preview' => true])['dumps'], 'editor preview runs no final query or dump');
+$debug_build = ab_render($new, array_replace($build, ['debug' => 1]));
+ab_same(2, count($debug_build['dumps']), 'Build dumps each executed step, not unused CPT lookups');
+ab_same(4, $debug_build['dumps'][0]['posts_per_page'], 'first Build dump shows quota');
+ab_same(2, $debug_build['dumps'][1]['posts_per_page'], 'second Build dump shows remaining gap');
+ab_same([$a, $b], $debug_build['dumps'][1]['post__not_in'], 'later Build dump contains prior IDs');
+$debug_manual = ab_render($new, array_replace($build, ['debug' => 1, 'include_posts' => [$e]]));
+ab_same(3, count($debug_manual['dumps']), 'Build dumps manual selection and both executed filter queries');
+ab_same([$e], $debug_manual['dumps'][0]['post__in'], 'manual dump shows actual inclusion args');
+$debug_relation = ab_render($new, array_replace($base, ['debug' => 1, 'post_type' => 'faq', 'query_logic' => 'All', 'filters' => [ab_filter('relates_to', '%me%')]]));
+ab_same('"' . $owner . '"', $debug_relation['dumps'][0]['meta_query'][0][0]['value'], 'dump shows resolved tokens and final relationship args');
 echo 'PASS: ' . $GLOBALS['ab_checks'] . " checks, including " . count($cases) . " complete 3.2.1 render comparisons.\n";

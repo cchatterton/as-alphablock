@@ -125,3 +125,30 @@ test('NLP request input is blank by default and its example is only a placeholde
   try { assert.equal(ui.input('field_prompt').value, 'My saved prompt'); }
   finally { ui.dom.window.close(); }
 });
+
+test('debug defaults to zero and manual JSON changes survive field saves and blur', async () => {
+  const ui = editor({});
+  try {
+    await delay(380);
+    assert.equal(ui.json().debug, 0);
+    ui.input('field_json').value = JSON.stringify({ ...ui.json(), debug: 1 });
+    ui.input('field_json').dispatchEvent(new ui.dom.window.Event('input', { bubbles: true }));
+    await delay(480);
+    ui.input('field_json').dispatchEvent(new ui.dom.window.Event('blur'));
+    assert.equal(ui.json().debug, 1);
+    ui.input('field_header').value = 'Debugging this block';
+    ui.input('field_header').dispatchEvent(new ui.dom.window.Event('input', { bubbles: true }));
+    await delay(180);
+    assert.equal(ui.json().debug, 1);
+    ui.input('field_json').value = JSON.stringify({ ...ui.json(), debug: 0 });
+    ui.input('field_json').dispatchEvent(new ui.dom.window.Event('input', { bubbles: true }));
+    await delay(480);
+    ui.input('field_json').dispatchEvent(new ui.dom.window.Event('blur'));
+    assert.equal(ui.json().debug, 0);
+  } finally { ui.dom.window.close(); }
+});
+test('debug one survives initial editor synchronisation', async () => {
+  const ui = editor({ debug: 1 });
+  try { await delay(380); assert.equal(ui.json().debug, 1); }
+  finally { ui.dom.window.close(); }
+});
