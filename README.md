@@ -2,7 +2,7 @@
 
 AlphaSys's ACF-based WordPress theme block for querying posts and rendering reusable Magic Card templates.
 
-## Version 3.3.3
+## Version 3.3.4
 
 Version 3.3 adds separate token resolution, query construction and authoring guidance in `tokens.php`, `args.php` and `prompt.php`. Patch 3.3.1 keeps system instructions out of the request input; patch 3.3.2 restores the tab label to Prompt. It adds the Build waterfall and Post Attributes filters, and explains the controls in the editor. The compatibility baseline is the supplied template **3.2.1**; existing None, All, Any and Family behaviour is retained for their existing configurations.
 
@@ -11,7 +11,7 @@ Version 3.3 adds separate token resolution, query construction and authoring gui
 ## Installation and upgrade
 
 1. Back up the currently deployed `blocks/alphablock/` folder and the content/configuration being edited.
-2. Download `as-alphablock-3.3.3.zip` from the GitHub release.
+2. Download `as-alphablock-3.3.4.zip` from the GitHub release.
 3. Extract the complete `alphablock/` folder into your active theme's `blocks/` directory, replacing the existing files. Deploy **all seven files together**; the template and editor require the new helpers.
 4. Keep the shared AlphaSys theme loader that loads ACF JSON and registers `blocks/*/block.json`.
 5. Sync the AlphaBlock ACF field group from local JSON if the editor still shows the old layout. Its field-group key and saved field keys are preserved; its modification timestamp is updated. Do not use the old destructive ACF hard-reset snippet.
@@ -104,6 +104,12 @@ To show FAQs referring to the page containing the block:
 ```
 
 Other saved card/layout properties remain as configured. A numeric literal ID and the resolved owner token build the same relationship query. The lookup uses the owning post, not an unrelated global post.
+
+## Posts per row
+
+Set `"posts_per_row": -1` to put all selected posts in one row. The control accepts -1; its default remains 3. Positive values continue to specify a fixed number of posts per row.
+
+For -1, the row width uses the final selected-post count, including explicit inclusions and the final Build result, before any carousel duplicate copies. The Swipe/Carousel 0.2 offset is not applied in this mode, so all selected posts fit in the row. Empty results use a safe width of 1. Other invalid nonpositive values retain the previous fallback to 1. Existing theme layout CSS still controls the presentation through `--per-row`.
 
 ## Debug query arguments
 

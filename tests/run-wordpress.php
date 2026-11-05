@@ -286,4 +286,20 @@ ab_same(3, count($debug_manual['dumps']), 'Build dumps manual selection and both
 ab_same([$e], $debug_manual['dumps'][0]['post__in'], 'manual dump shows actual inclusion args');
 $debug_relation = ab_render($new, array_replace($base, ['debug' => 1, 'post_type' => 'faq', 'query_logic' => 'All', 'filters' => [ab_filter('relates_to', '%me%')]]));
 ab_same('"' . $owner . '"', $debug_relation['dumps'][0]['meta_query'][0][0]['value'], 'dump shows resolved tokens and final relationship args');
+// -1 means every selected post fits in one row, before carousel copies.
+foreach ([['Wrap', 'Wrap'], ['Swipe', 'Wrap'], ['Carousel', 'Swipe'], ['Wrap', 'Carousel']] as [$desktop, $mobile]) {
+	$config = array_replace($base, ['posts_per_row' => -1, 'layout' => $desktop, 'mobile_layout' => $mobile]);
+	$rendered = ab_render($new, $config);
+	ab_same(true, str_contains($rendered['html'], 'style="--per-row:3;"'), 'all-in-one-row width for ' . $desktop . '/' . $mobile);
+	foreach ([1, 3, 12, 0, -2] as $fixed) {
+		$fixed_config = array_replace($config, ['posts_per_row' => $fixed]);
+		ab_same(ab_render($old, $fixed_config), ab_render($new, $fixed_config), 'existing row-width behaviour ' . $fixed . ' for ' . $desktop . '/' . $mobile);
+	}
+}
+$row_config = array_replace($base, ['posts_per_row' => -1]);
+ab_same(true, str_contains(ab_render($new, array_replace($row_config, ['total_posts' => -1]))['html'], 'style="--per-row:5;"'), 'row size uses actual selected count');
+ab_same(true, str_contains(ab_render($new, array_replace($row_config, ['total_posts' => 1]))['html'], 'style="--per-row:1;"'), 'single selected item');
+ab_same(true, str_contains(ab_render($new, array_replace($row_config, ['query_logic' => 'All', 'filters' => [ab_filter('tier', 'missing')]]))['html'], 'style="--per-row:1;"'), 'empty result has a safe row width');
+ab_same(true, str_contains(ab_render($new, array_replace($row_config, ['include_posts' => [$e]]))['html'], 'style="--per-row:4;"'), 'row count includes appended manual posts');
+ab_same(true, str_contains(ab_render($new, array_replace($build, ['posts_per_row' => -1]))['html'], 'style="--per-row:4;"'), 'Build row count uses its final quota result');
 echo 'PASS: ' . $GLOBALS['ab_checks'] . " checks, including " . count($cases) . " complete 3.2.1 render comparisons.\n";

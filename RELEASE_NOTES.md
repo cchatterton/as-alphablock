@@ -1,25 +1,22 @@
-AlphaBlock v3.3.3 adds a manually controlled JSON debug flag and includes the Prompt tab correction from v3.3.2.
+AlphaBlock v3.3.4 adds **Posts per row = -1**, meaning all selected posts fit in the same row.
 
 ```json
-"debug": 0
+"posts_per_row": -1
 ```
 
-Change the value to `1` to print the final query arguments through the theme's existing `pre_dump($args)` function. Change it back to `0` to disable. The flag defaults to 0 for existing blocks and is retained by editor saves; there is no ACF toggle.
+- The editor control now accepts -1 and explains the option.
+- Row width uses the final selected-post count, including manual inclusions and Build results, before carousel duplicate copies.
+- Swipe/Carousel fractional spacing is skipped for -1. Empty results use a safe row width of 1.
+- The default remains 3. Existing positive values, queries, saved field keys and JSON property names are unchanged.
 
-The dump follows token replacement, normalization and conditional argument construction. Build dumps each executed manual-selection/filter query with its actual remaining quota and exclusions. Unused rows and intermediate CPT/Family lookup queries are not dumped. Editor preview does not run queries or print their arguments. Debug does not change selected posts or card rendering.
+### File-by-file update from v3.3.3
 
-### File-by-file update
+- `alphablock/template.php`: preserve -1 and calculate the final row width.
+- `alphablock/alphablock.json`: allow -1 in the existing control and add its instructions.
+- `alphablock/block.json`: version 3.3.4.
 
-From v3.3.2, upload only:
-
-- `alphablock/template.php`: debug default and calls to the existing theme function.
-- `alphablock/block.php`: preserve the JSON-only debug option through editor saves.
-- `alphablock/block.json`: version 3.3.3.
-
-If you have not yet applied v3.3.2, also upload `alphablock/alphablock.json` to restore the **Prompt** tab label, and sync the field group if needed. `prompt.php`, `tokens.php` and `args.php` have no new changes from v3.3.2.
-
-The ZIP contains the full deployable folder. No live site deployment is performed by publishing this release.
+No changes to block.php, tokens.php, args.php or prompt.php. Sync the AlphaBlock ACF field group from local JSON if the control still has a minimum of 1. No live-site deployment is performed by publishing this release.
 
 ### Validation
 
-113 WordPress/database assertions, including 40 complete render comparisons against supplied 3.2.1, and eight editor/schema tests pass. PHP syntax, JSON and ZIP integrity checks pass. Tests use disposable WordPress/SQLite and simulated editor controls; the live theme/ACF PRO environment still needs its staging smoke test.
+142 WordPress/database assertions and nine editor/schema tests pass. Coverage includes the 40 complete 3.2.1 render comparisons, plus 20 additional comparisons preserving fixed/invalid row-width behaviour across layouts. PHP syntax, JSON and ZIP integrity checks pass. Local tests use WordPress/SQLite and a simulated editor; the live theme CSS and ACF PRO controls still require a staging check.

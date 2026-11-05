@@ -3,10 +3,11 @@
  * File: AlphaBlock
  *
  * @subpackage Blocks
- * @version    3.3.3
+ * @version    3.3.4
  * @author     Chris Chatterton
  *
  * Release Notes:
+ * 3.3.4 20261105: Treat posts_per_row -1 as all selected posts in one row.
  * 3.3.3 20261030: Add opt-in JSON debug flag for final query arguments.
  * 3.3.0 20261030: Extract tokens/args, add waterfall Build and Post Attributes.
  * 3.2.1 20261029: Replace %me% and %me->slug% throughout input values in one pass.
@@ -475,10 +476,10 @@ $block_values['exclude_posts'] = array_values(
 	)
 );
 
-$block_values['posts_per_row'] = max(
-	1,
-	(int) $block_values['posts_per_row']
-);
+$posts_per_row = (int) $block_values['posts_per_row'];
+$block_values['posts_per_row'] = $posts_per_row === -1
+	? -1
+	: max(1, $posts_per_row);
 
 // Debug is opt-in through JSON (or a runtime override), never inferred as truthy.
 $block_values['debug'] = in_array($block_values['debug'], [1, '1'], true) ? 1 : 0;
@@ -675,7 +676,9 @@ if ($query_plan['mode'] === 'build') {
 }
 
 /* Convert desktop/mobile layout settings into CSS classes and row width. */
-$per = $block_values['posts_per_row'];
+$all_in_one_row = $block_values['posts_per_row'] === -1;
+// Count the final list, including manual selections, before carousel copies.
+$per = $all_in_one_row ? max(1, count($pids)) : $block_values['posts_per_row'];
 
 $layout_lg = strtolower(
 	trim(
@@ -696,8 +699,8 @@ $layout_sm = strtolower(
 );
 
 if (
-	$layout_lg !== 'wrap' ||
-	$layout_sm !== 'wrap'
+	!$all_in_one_row &&
+	($layout_lg !== 'wrap' || $layout_sm !== 'wrap')
 ) {
 	$per += 0.2;
 }

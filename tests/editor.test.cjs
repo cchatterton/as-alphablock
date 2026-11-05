@@ -152,3 +152,30 @@ test('debug one survives initial editor synchronisation', async () => {
   try { await delay(380); assert.equal(ui.json().debug, 1); }
   finally { ui.dom.window.close(); }
 });
+
+test('posts per row allows -1 and preserves it through field and JSON edits', async () => {
+  const field = group.fields.find(field => field.key === 'field_posts_per_row');
+  assert.equal(field.min, -1);
+  assert.equal(field.max, 12);
+  assert.equal(field.default_value, 3);
+  assert.ok(field.instructions.includes('one row'));
+  const ui = editor({ posts_per_row: -1 });
+  try {
+    await delay(380);
+    assert.equal(ui.json().posts_per_row, -1);
+    ui.input('field_header').value = 'All in one row';
+    ui.input('field_header').dispatchEvent(new ui.dom.window.Event('input', { bubbles: true }));
+    await delay(180);
+    assert.equal(ui.json().posts_per_row, -1);
+    ui.input('field_json').value = JSON.stringify({ ...ui.json(), posts_per_row: 4 });
+    ui.input('field_json').dispatchEvent(new ui.dom.window.Event('input', { bubbles: true }));
+    await delay(480);
+    assert.equal(ui.input('field_posts_per_row').value, '4');
+    ui.input('field_json').value = JSON.stringify({ ...ui.json(), posts_per_row: -1 });
+    ui.input('field_json').dispatchEvent(new ui.dom.window.Event('input', { bubbles: true }));
+    await delay(480);
+    ui.input('field_json').dispatchEvent(new ui.dom.window.Event('blur'));
+    assert.equal(ui.input('field_posts_per_row').value, '-1');
+    assert.equal(ui.json().posts_per_row, -1);
+  } finally { ui.dom.window.close(); }
+});

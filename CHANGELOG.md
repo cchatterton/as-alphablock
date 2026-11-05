@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.3.4 — 2026-11-05
+
+- Allow posts_per_row = -1 in the editor and JSON to put all selected posts in one row.
+- Resolve row width from the final selected-post count, including manual selections, before carousel copies.
+- Skip the Swipe/Carousel fractional spacing in this mode; preserve existing positive-value behaviour and the default of 3.
+- Add editor and rendering regression tests.
+
 ## 3.3.3 — 2026-10-30
 
 - Add JSON-only debug with a default of 0. Setting it to 1 calls the theme pre_dump function on final query arguments.
