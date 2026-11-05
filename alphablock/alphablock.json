@@ -350,7 +350,7 @@
             "min": -1,
             "max": 12,
             "step": "",
-            "instructions": "Use -1 to put all selected posts in one row, or 1–12 for a fixed number per row."
+            "instructions": ""
         },
         {
             "key": "field_card",
@@ -451,6 +451,20 @@
             "toggle": 0,
             "save_custom": 0,
             "custom_choice_button_text": "Add new choice"
+        },
+        {
+            "key": "field_alphablock_show_posts_help",
+            "label": "Show posts guidance",
+            "name": "",
+            "type": "message",
+            "wrapper": {
+                "width": "100",
+                "class": "",
+                "id": ""
+            },
+            "message": "<p><strong>Posts per row:</strong> use <code>-1</code> to put all selected posts in one row, or 1–12 for a fixed number per row.</p>",
+            "new_lines": "",
+            "esc_html": 0
         },
         {
             "key": "field_tab_family",
@@ -673,5 +687,5 @@
         ]
     ],
     "active": true,
-    "modified": 1793866891
+    "modified": 1793867416
 }

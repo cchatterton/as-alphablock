@@ -158,7 +158,14 @@ test('posts per row allows -1 and preserves it through field and JSON edits', as
   assert.equal(field.min, -1);
   assert.equal(field.max, 12);
   assert.equal(field.default_value, 3);
-  assert.ok(field.instructions.includes('one row'));
+  assert.equal(field.instructions, '');
+  const helpIndex = group.fields.findIndex(field => field.key === 'field_alphablock_show_posts_help');
+  const help = group.fields[helpIndex];
+  assert.equal(group.fields[helpIndex - 1].key, 'field_show_links');
+  assert.equal(group.fields[helpIndex + 1].key, 'field_tab_family');
+  assert.equal(help.type, 'message');
+  assert.equal(help.wrapper.width, '100');
+  assert.ok(help.message.includes('one row'));
   const ui = editor({ posts_per_row: -1 });
   try {
     await delay(380);

@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.3.5 — 2026-11-05
+
+- Move Posts per row guidance out of the individual input and into a full-width message below all Show Posts controls.
+- No PHP or rendering changes.
+
 ## 3.3.4 — 2026-11-05
 
 - Allow posts_per_row = -1 in the editor and JSON to put all selected posts in one row.
