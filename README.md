@@ -2,17 +2,17 @@
 
 AlphaSys's ACF-based WordPress theme block for querying posts and rendering reusable Magic Card templates.
 
-## Version 3.3.5
+## Version 3.4.0
 
-Version 3.3 adds separate token resolution, query construction and authoring guidance in `tokens.php`, `args.php` and `prompt.php`. Patch 3.3.1 keeps system instructions out of the request input; patch 3.3.2 restores the tab label to Prompt. It adds the Build waterfall and Post Attributes filters, and explains the controls in the editor. The compatibility baseline is the supplied template **3.2.1**; existing None, All, Any and Family behaviour is retained for their existing configurations.
+Version 3.4.0 adds a Card/List toggle and optional List classes and Font Awesome icons. Card remains the default for existing saved blocks. Existing Card markup, query behaviour and layouts are retained, with render comparisons against both the supplied 3.2.1 template and released 3.3.5. The Prompt tab remains a blank request input, separate from system instructions.
 
 **Build changes behaviour:** it previously ran the base query. With filter rows it now fills a quota in filter priority order. Review existing blocks using Build before deployment. Existing saved JSON does not need a schema migration.
 
 ## Installation and upgrade
 
 1. Back up the currently deployed `blocks/alphablock/` folder and the content/configuration being edited.
-2. Download `as-alphablock-3.3.5.zip` from the GitHub release.
-3. Extract the complete `alphablock/` folder into your active theme's `blocks/` directory, replacing the existing files. Deploy **all seven files together**; the template and editor require the new helpers.
+2. Download `as-alphablock-3.4.0.zip` from the GitHub release.
+3. Extract the complete `alphablock/` folder into your active theme's `blocks/` directory, replacing the existing files. A complete installation needs all seven files. For a file-by-file upgrade from 3.3.5, follow the ordered five-file list below.
 4. Keep the shared AlphaSys theme loader that loads ACF JSON and registers `blocks/*/block.json`.
 5. Sync the AlphaBlock ACF field group from local JSON if the editor still shows the old layout. Its field-group key and saved field keys are preserved; its modification timestamp is updated. Do not use the old destructive ACF hard-reset snippet.
 6. Smoke-test representative pages on staging, including an existing related-FAQ block, Family block, layouts, editor saves and any Build blocks, before promoting the folder to production.
@@ -104,6 +104,47 @@ To show FAQs referring to the page containing the block:
 ```
 
 Other saved card/layout properties remain as configured. A numeric literal ID and the resolved owner token build the same relationship query. The lookup uses the owning post, not an unrelated global post.
+
+## Show as Card or List
+
+**Card is the default.** An existing block with no `show_as` property renders the same as before. Invalid values also fall back to Card. A card template named "List" remains a card template and does not activate the new List renderer. There is no content migration.
+
+The Show Posts tab begins with a Card/List button toggle. Card shows the existing Posts per row, Card, Layout, Mobile Layout and Show Links controls. List hides those controls and shows four optional text inputs:
+
+| Input | JSON property | Applies to |
+|---|---|---|
+| UL class | `list_ul_class` | The list container |
+| LI class | `list_li_class` | Every list item |
+| A class | `list_a_class` | Every link |
+| Font Awesome icon | `list_icon` | A decorative icon before each link |
+
+All four default to an empty string. Class inputs accept space-separated class names; the icon accepts full classes such as `fa-solid fa-chevron-right`, not HTML. The theme must already load Font Awesome. The editor retains both modes' settings while switching, reopening or changing JSON. Guidance is below the complete set of inputs.
+
+```json
+{
+  "show_as": "list",
+  "list_ul_class": "news-links",
+  "list_li_class": "news-item",
+  "list_a_class": "news-link",
+  "list_icon": "fa-solid fa-chevron-right"
+}
+```
+
+Keep the existing query and other properties alongside these settings. List uses the same selected posts and ordering, including filters, Family, Build, manual selections and debug. It outputs one `li` and permalink/title `a` per published post. No card template is required. Empty classes are omitted. An icon suppresses normal list bullets; without an icon normal bullets remain. Titles, URLs and attributes are escaped.
+
+List retains the section heading and outer section wrappers and uses `list-wrapper` around its plain `ul`; it does not use `card-wrapper`, card layout classes, row-width styling or carousel copies. Card mode retains its existing markup, classes, Magic Card calls and layout behaviour. List's four settings are ignored in Card mode.
+
+### File-by-file upgrade from 3.3.5
+
+Upload in this order so the new controls appear after their support code:
+
+1. `prompt.php` — documents the new JSON while retaining exact old-prompt recognition.
+2. `block.php` — synchronizes the new inputs, retains inactive settings and handles ACF/Select2 synthetic changes.
+3. `template.php` — defaults to Card and adds the separate List renderer.
+4. `alphablock.json` — exposes the toggle and conditional inputs; sync the field group if needed.
+5. `block.json` — version metadata.
+
+`args.php` and `tokens.php` are unchanged. The ZIP still contains the complete seven-file folder. An older renderer does not support List; before rolling back a newly configured List block, switch it to Card and select a card template, or restore its saved configuration backup.
 
 ## Posts per row
 

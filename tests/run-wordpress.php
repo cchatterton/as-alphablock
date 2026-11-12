@@ -84,6 +84,7 @@ register_post_type('stories', ['public' => true, 'hierarchical' => true]);
 register_post_type('story', ['public' => true]);
 register_post_type('faq', ['public' => true]);
 register_post_type('card', ['public' => false]);
+register_post_type('list_test', ['public' => true]);
 register_post_type('internal_content', ['public' => false, 'exclude_from_search' => true]);
 foreach (get_posts(['post_type' => array_keys(get_post_types()), 'post_status' => 'any', 'posts_per_page' => -1, 'fields' => 'ids', 'meta_key' => '_alphablock_test_fixture']) as $previous_fixture) {
 	wp_delete_post($previous_fixture, true);
@@ -302,4 +303,93 @@ ab_same(true, str_contains(ab_render($new, array_replace($row_config, ['total_po
 ab_same(true, str_contains(ab_render($new, array_replace($row_config, ['query_logic' => 'All', 'filters' => [ab_filter('tier', 'missing')]]))['html'], 'style="--per-row:1;"'), 'empty result has a safe row width');
 ab_same(true, str_contains(ab_render($new, array_replace($row_config, ['include_posts' => [$e]]))['html'], 'style="--per-row:4;"'), 'row count includes appended manual posts');
 ab_same(true, str_contains(ab_render($new, array_replace($build, ['posts_per_row' => -1]))['html'], 'style="--per-row:4;"'), 'Build row count uses its final quota result');
+// Current-release compatibility: explicit/missing Card must match 3.3.5 exactly.
+$card_baseline = $root . '/tests/fixtures/template-3.3.5.php';
+// Only the snapshot's two relative include paths are adapted. Hash-check the
+// unchanged shared helpers so a future refactor cannot silently alter this baseline.
+foreach (json_decode(file_get_contents($root . '/tests/fixtures/helpers-3.3.5.json'), true) as $helper => $hash) {
+	ab_same($hash, hash_file('sha256', $root . '/alphablock/' . $helper), 'unchanged 3.3.5 helper: ' . $helper);
+}
+
+foreach ($cases as $name => [$values, $options]) {
+	ab_same(ab_render($card_baseline, $values, $options), ab_render($new, $values, $options), '3.3.5 missing-mode compatibility: ' . $name);
+	ab_same(ab_render($card_baseline, $values, $options), ab_render($new, array_replace($values, ['show_as' => 'card', 'list_ul_class' => 'must-not-apply', 'list_icon' => 'fa-solid fa-check']), $options), '3.3.5 explicit Card compatibility: ' . $name);
+}
+foreach ([null, '', false, 0, [], 'unknown'] as $invalid_mode) {
+	ab_same(ab_render($card_baseline, $base), ab_render($new, array_replace($base, ['show_as' => $invalid_mode])), 'invalid mode falls back to Card');
+}
+$named_list_card = ab_post('List', 'card');
+$named_card_config = array_replace($base, ['card' => $named_list_card]);
+ab_same(ab_render($card_baseline, $named_card_config), ab_render($new, $named_card_config), 'a card template named List stays a card');
+
+function ab_list_nodes($html) {
+	$document = new DOMDocument();
+	@$document->loadHTML('<?xml encoding="utf-8" ?>' . $html);
+	$xpath = new DOMXPath($document);
+	$list = $xpath->query('//div[@class="list-wrapper"]/ul')->item(0);
+	if (!$list) { throw new RuntimeException('Expected a list-wrapper containing a UL'); }
+	return [$list, $xpath];
+}
+function ab_list_urls($html) {
+	[$list] = ab_list_nodes($html);
+	$urls = [];
+	foreach ($list->getElementsByTagName('a') as $link) { $urls[] = $link->getAttribute('href'); }
+	return $urls;
+}
+$list_config = array_replace($base, ['show_as' => 'list', 'card' => null]);
+$list_render = ab_render($new, $list_config);
+[$list, $xpath] = ab_list_nodes($list_render['html']);
+ab_same(array_map('get_permalink', [$a, $b, $c]), ab_list_urls($list_render['html']), 'List uses selected posts and their permalinks');
+ab_same([], $list_render['ids'], 'List never invokes Magic Card');
+ab_same(false, $list->hasAttribute('class'), 'optional UL class is omitted');
+ab_same(false, $list->hasAttribute('style'), 'no icon retains normal list bullets');
+ab_same(false, $list->firstChild->hasAttribute('class'), 'optional LI class is omitted');
+ab_same(false, $list->getElementsByTagName('a')->item(0)->hasAttribute('class'), 'optional A class is omitted');
+ab_same(get_the_title($a), $list->getElementsByTagName('a')->item(0)->textContent, 'List link text is the post title');
+ab_same(0, $xpath->query('//i')->length, 'no empty icon element');
+ab_same(false, str_contains($list_render['html'], 'card-layout-'), 'List omits card layout classes');
+ab_same(false, str_contains($list_render['html'], 'card-wrapper'), 'List avoids card wrapper styles');
+ab_same(false, str_contains($list_render['html'], '--per-row'), 'List ignores card row widths');
+ab_same(true, str_contains($list_render['html'], '<h2>Existing heading</h2>'), 'List retains the section heading');
+$with_classes = array_replace($list_config, ['list_ul_class' => 'links extra', 'list_li_class' => 'link-item', 'list_a_class' => 'link-text', 'list_icon' => 'fa-solid fa-chevron-right']);
+[$list, $xpath] = ab_list_nodes(ab_render($new, $with_classes)['html']);
+ab_same('links extra', $list->getAttribute('class'), 'UL classes');
+ab_same('link-item', $list->firstChild->getAttribute('class'), 'LI classes');
+ab_same('link-text', $list->getElementsByTagName('a')->item(0)->getAttribute('class'), 'A classes');
+ab_same('list-style:none;', $list->getAttribute('style'), 'icon replaces the native bullet');
+ab_same(3, $list->getElementsByTagName('i')->length, 'one icon per item');
+ab_same('fa-solid fa-chevron-right', $list->getElementsByTagName('i')->item(0)->getAttribute('class'), 'full Font Awesome classes');
+ab_same('true', $list->getElementsByTagName('i')->item(0)->getAttribute('aria-hidden'), 'decorative icon hidden from assistive technology');
+$carousel_list = array_replace($with_classes, ['layout' => 'Carousel', 'mobile_layout' => 'Carousel']);
+[$list] = ab_list_nodes(ab_render($new, $carousel_list)['html']);
+ab_same(3, $list->getElementsByTagName('li')->length, 'List ignores carousel duplicates');
+ab_same(false, str_contains(ab_render($new, $carousel_list)['html'], 'card-dup'), 'List has no carousel markup');
+ab_same(array_map('get_permalink', [$a, $b, $c, $d]), ab_list_urls(ab_render($new, array_replace($build, ['show_as' => 'list']))['html']), 'List shares Build selection and order');
+ab_same(array_map('get_permalink', [$a, $b, $c, $e]), ab_list_urls(ab_render($new, array_replace($list_config, ['include_posts' => [$e]]))['html']), 'List shares explicit inclusions');
+ab_same(array_map('get_permalink', [$a, $c, $d]), ab_list_urls(ab_render($new, array_replace($list_config, ['exclude_posts' => [$b]]))['html']), 'List shares exclusions');
+ab_same([], ab_list_urls(ab_render($new, array_replace($list_config, ['total_posts' => 0, 'include_posts' => [$draft, $private, 99999999]]))['html']), 'List never exposes unpublished or missing manual posts');
+ab_same([], ab_list_urls(ab_render($new, array_replace($list_config, ['query_logic' => 'All', 'filters' => [ab_filter('tier', 'missing')]]))['html']), 'List handles empty results');
+ab_same(1, count(ab_render($new, array_replace($list_config, ['debug' => 1]))['dumps']), 'List retains debug query output');
+$preview_list = ab_render($new, $list_config, ['preview' => true]);
+ab_same([], $preview_list['ids'], 'List preview does not render cards');
+ab_same(true, str_contains($preview_list['html'], 'Show as:'), 'List preview identifies its renderer');
+ab_same(true, str_contains($preview_list['html'], 'List'), 'List preview label');
+ab_same(false, str_contains($preview_list['html'], '<ul'), 'List preview does not query/render the list');
+$token_classes = ab_render($new, array_replace($list_config, ['list_ul_class' => 'owner-%me%', 'list_icon' => '%unknown%']));
+[$list] = ab_list_nodes($token_classes['html']);
+ab_same('owner-' . $owner, $list->getAttribute('class'), 'List classes receive token replacement');
+ab_same('%unknown%', $list->getElementsByTagName('i')->item(0)->getAttribute('class'), 'unknown List tokens remain literal');
+$special = ab_post('Dollar $1 & <b>Title</b>', 'list_test');
+$unsafe = array_replace($list_config, ['total_posts' => 0, 'include_posts' => [$special], 'list_ul_class' => 'links" onclick="evil()', 'list_li_class' => '<script>bad()</script>', 'list_a_class' => 'link" onmouseover="evil()', 'list_icon' => 'fa-check" onclick="evil()']);
+[$list, $xpath] = ab_list_nodes(ab_render($new, $unsafe)['html']);
+ab_same(false, $list->hasAttribute('onclick'), 'UL classes cannot inject attributes');
+ab_same(false, $list->getElementsByTagName('a')->item(0)->hasAttribute('onmouseover'), 'A classes cannot inject attributes');
+ab_same(false, $list->getElementsByTagName('i')->item(0)->hasAttribute('onclick'), 'icon classes cannot inject attributes');
+ab_same(0, $xpath->query('//script')->length, 'List cannot inject HTML');
+ab_same(html_entity_decode(get_the_title($special), ENT_QUOTES | ENT_HTML5, 'UTF-8'), $list->getElementsByTagName('a')->item(0)->textContent, 'escaped title preserves ampersands, markup and literal dollar signs');
+ab_same(0, $list->getElementsByTagName('b')->length, 'title markup is rendered as text');
+ab_same(get_permalink($special), $list->getElementsByTagName('a')->item(0)->getAttribute('href'), 'special title still uses its real permalink');
+ab_same('', apply_filters('acf/load_value/key=field_prompt', alphablock_get_legacy_prompt()), 'old generated prompt is still cleared after system instructions evolve');
+ab_same(true, str_contains(alphablock_get_prompt(), '"show_as": "card"'), 'system prompt documents Card default');
+ab_same(true, str_contains(alphablock_get_prompt(), '"list_icon": ""'), 'system prompt documents optional list icon');
 echo 'PASS: ' . $GLOBALS['ab_checks'] . " checks, including " . count($cases) . " complete 3.2.1 render comparisons.\n";

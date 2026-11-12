@@ -21,9 +21,12 @@ function control(field, value) {
     case 'range': inner = `<input type="range" min="${field.min}" max="${field.max}" value="${escape(value)}"><input type="number" value="${escape(value)}">`; break;
     case 'text': inner = `<input type="text" value="${escape(value)}">`; break;
     case 'textarea': inner = `<textarea>${escape(value)}</textarea>`; break;
+    case 'button_group':
+      value = value ?? field.default_value;
+      inner = Object.entries(field.choices).map(([key, label]) => `<label><input type="radio" name="${field.key}" value="${key}"${value === key ? ' checked' : ''}>${label}</label>`).join(''); break;
     case 'select':
       inner = '<select>' + (field.allow_null ? '<option value="">Any post type</option>' : '') + Object.entries(field.choices).map(([key, label]) => `<option value="${escape(key)}"${String(value) === key ? ' selected' : ''}>${escape(label)}</option>`).join('') + '</select>'; break;
-    case 'post_object': inner = `<select><option value="12" selected>Test card</option></select>`; break;
+    case 'post_object': inner = `<select><option value="">Select</option><option value="12"${String(value) === '12' ? ' selected' : ''}>Test card</option></select>`; break;
     case 'checkbox': inner = Object.keys(field.choices).map(key => `<input type="checkbox" value="${escape(key)}"${(value || []).includes(key) ? ' checked' : ''}>`).join(''); break;
     case 'relationship': inner = '<div class="values-list"></div>'; break;
     case 'repeater': inner = '<table><tbody>' + (value || []).map(row => '<tr class="acf-row">' + field.sub_fields.map(sub => `<td>${control(sub, row[sub.name])}</td>`).join('') + '</tr>').join('') + '</tbody></table>'; break;
@@ -31,11 +34,12 @@ function control(field, value) {
   }
   return `<div ${attrs}><div class="acf-input">${inner}</div></div>`;
 }
-function editor(values, fieldOverrides = {}) {
+function editor(values, fieldOverrides = {}, options = {}) {
   const config = { ...base, ...values };
   const form = { ...config, ...fieldOverrides, json: JSON.stringify(config), prompt: 'My saved prompt' };
   const html = '<div class="acf-block-fields" data-block-id="test">' + group.fields.map(field => control(field, form[field.name])).join('') + '</div>';
   const dom = new JSDOM(html, { runScripts: 'outside-only', url: 'https://example.invalid/wp-admin/post.php', virtualConsole: new VirtualConsole() });
+  if (options.jQuery) { dom.window.jQuery = dom.window.$ = require('jquery')(dom.window); }
   dom.window.eval(source);
   dom.window.document.dispatchEvent(new dom.window.Event('DOMContentLoaded'));
   const input = key => dom.window.document.querySelector(`.acf-field[data-key="${key}"] .acf-input`).querySelector('textarea, select, input:not([type="hidden"])');
@@ -161,7 +165,7 @@ test('posts per row allows -1 and preserves it through field and JSON edits', as
   assert.equal(field.instructions, '');
   const helpIndex = group.fields.findIndex(field => field.key === 'field_alphablock_show_posts_help');
   const help = group.fields[helpIndex];
-  assert.equal(group.fields[helpIndex - 1].key, 'field_show_links');
+  assert.equal(group.fields[helpIndex - 1].key, 'field_alphablock_list_icon');
   assert.equal(group.fields[helpIndex + 1].key, 'field_tab_family');
   assert.equal(help.type, 'message');
   assert.equal(help.wrapper.width, '100');
@@ -184,5 +188,124 @@ test('posts per row allows -1 and preserves it through field and JSON edits', as
     ui.input('field_json').dispatchEvent(new ui.dom.window.Event('blur'));
     assert.equal(ui.input('field_posts_per_row').value, '-1');
     assert.equal(ui.json().posts_per_row, -1);
+  } finally { ui.dom.window.close(); }
+});
+
+function setMode(ui, mode) {
+  const radio = ui.dom.window.document.querySelector(`.acf-field[data-key="field_alphablock_show_as"] input[value="${mode}"]`);
+  radio.checked = true;
+  radio.dispatchEvent(new ui.dom.window.Event('change', { bubbles: true }));
+}
+test('Card/List conditions default to Card and keep all four List inputs optional', () => {
+  const mode = group.fields.find(field => field.name === 'show_as');
+  assert.equal(mode.type, 'button_group');
+  assert.equal(mode.default_value, 'card');
+  assert.deepEqual(mode.choices, { card: 'Card', list: 'List' });
+  const cardNames = ['posts_per_row', 'card', 'layout', 'mobile_layout', 'show_links'];
+  for (const name of cardNames) {
+    const field = group.fields.find(field => field.name === name);
+    assert.ok(field.conditional_logic.every(rules => rules.some(rule => rule.field === mode.key && rule.value === 'card')));
+  }
+  const links = group.fields.find(field => field.name === 'show_links');
+  assert.ok(links.conditional_logic[0].some(rule => rule.field === 'field_layout' && rule.value === 'Wrap'));
+  for (const name of ['list_ul_class', 'list_li_class', 'list_a_class', 'list_icon']) {
+    const field = group.fields.find(field => field.name === name);
+    assert.equal(field.required, 0);
+    assert.equal(field.default_value, '');
+    assert.deepEqual(field.conditional_logic, [[{ field: mode.key, operator: '==', value: 'list' }]]);
+  }
+});
+test('legacy editor configurations gain Card as the default without changing card settings', async () => {
+  const ui = editor({ card: 12, layout: 'Carousel', mobile_layout: 'Swipe', posts_per_row: -1 });
+  try {
+    await delay(380);
+    assert.equal(ui.json().show_as, 'card');
+    assert.equal(ui.json().card, 12);
+    assert.equal(ui.json().layout, 'Carousel');
+    assert.equal(ui.json().mobile_layout, 'Swipe');
+    assert.equal(ui.json().posts_per_row, -1);
+    assert.equal(ui.json().list_icon, '');
+  } finally { ui.dom.window.close(); }
+});
+test('switching modes preserves card settings and edited List classes', async () => {
+  const ui = editor({ show_as: 'card', card: 12, layout: 'Carousel', mobile_layout: 'Swipe', posts_per_row: -1, list_ul_class: 'initial-list' });
+  try {
+    await delay(380);
+    setMode(ui, 'list'); await delay(180);
+    assert.equal(ui.json().show_as, 'list');
+    assert.equal(ui.json().card, 12);
+    assert.equal(ui.json().layout, 'Carousel');
+    ui.input('field_alphablock_list_ul_class').value = 'new-list extra-class';
+    ui.input('field_alphablock_list_ul_class').dispatchEvent(new ui.dom.window.Event('input', { bubbles: true }));
+    await delay(180);
+    setMode(ui, 'card'); await delay(180);
+    assert.equal(ui.json().show_as, 'card');
+    assert.equal(ui.json().list_ul_class, 'new-list extra-class');
+    assert.equal(ui.json().posts_per_row, -1);
+    assert.equal(ui.input('field_layout').value, 'Carousel');
+    setMode(ui, 'list'); await delay(180);
+    assert.equal(ui.input('field_alphablock_list_ul_class').value, 'new-list extra-class');
+  } finally { ui.dom.window.close(); }
+});
+test('reopening List retains hidden card values even when ACF controls have reset', async () => {
+  const ui = editor({ show_as: 'list', card: 12, posts_per_row: -1, layout: 'Carousel', mobile_layout: 'Swipe', show_links: ['Show All'], list_icon: 'fa-solid fa-chevron-right' }, { show_as: 'card', card: null, posts_per_row: 3, layout: 'Wrap', mobile_layout: 'Wrap', show_links: [] });
+  try {
+    await delay(380);
+    assert.equal(ui.json().show_as, 'list');
+    assert.equal(ui.json().card, 12);
+    assert.equal(ui.json().layout, 'Carousel');
+    setMode(ui, 'card'); await delay(180);
+    assert.equal(ui.input('field_card').value, '12');
+    assert.equal(ui.input('field_posts_per_row').value, '-1');
+    assert.equal(ui.input('field_layout').value, 'Carousel');
+    assert.equal(ui.json().show_links[0], 'Show All');
+    assert.equal(ui.json().list_icon, 'fa-solid fa-chevron-right');
+  } finally { ui.dom.window.close(); }
+});
+test('JSON edits set the toggle and list settings without losing inactive values', async () => {
+  const ui = editor({ show_as: 'card', card: 12, layout: 'Carousel' });
+  try {
+    await delay(380);
+    ui.input('field_json').value = JSON.stringify({ ...ui.json(), show_as: 'list', list_ul_class: 'links', list_li_class: 'item', list_a_class: 'link', list_icon: 'fa-solid fa-check' });
+    ui.input('field_json').dispatchEvent(new ui.dom.window.Event('input', { bubbles: true }));
+    await delay(480);
+    ui.input('field_json').dispatchEvent(new ui.dom.window.Event('blur'));
+    assert.equal(ui.json().show_as, 'list');
+    assert.equal(ui.input('field_alphablock_list_icon').value, 'fa-solid fa-check');
+    assert.equal(ui.json().card, 12);
+    assert.equal(ui.json().layout, 'Carousel');
+    ui.input('field_alphablock_list_icon').value = '';
+    ui.input('field_alphablock_list_icon').dispatchEvent(new ui.dom.window.Event('input', { bubbles: true }));
+    await delay(180);
+    assert.equal(ui.json().list_icon, '');
+  } finally { ui.dom.window.close(); }
+});
+test('a partial file-by-file deployment preserves new JSON values if the new controls are absent', async () => {
+  const ui = editor({ show_as: 'list', list_ul_class: 'keep-this', list_icon: 'fa-solid fa-check' });
+  try {
+    ui.dom.window.document.querySelectorAll('.acf-field[data-key="field_alphablock_show_as"], .acf-field[data-key^="field_alphablock_list_"]').forEach(field => field.remove());
+    await delay(380);
+    assert.equal(ui.json().show_as, 'list');
+    assert.equal(ui.json().list_ul_class, 'keep-this');
+    assert.equal(ui.json().list_icon, 'fa-solid fa-check');
+  } finally { ui.dom.window.close(); }
+});
+
+test('Select2-style jQuery changes update JSON and survive a mode switch', async () => {
+  const ui = editor({ show_as: 'card', card: 12 }, {}, { jQuery: true });
+  try {
+    await delay(380);
+    const select = ui.input('field_card');
+    ui.dom.window.jQuery(select).append(new ui.dom.window.Option('Other card', '13')).val('13').trigger('change');
+    await delay(180);
+    assert.equal(ui.json().card, 13);
+    setMode(ui, 'list'); await delay(180);
+    assert.equal(ui.json().card, 13);
+    ui.dom.window.jQuery(ui.input('field_alphablock_list_ul_class')).val('jquery-list').trigger('change');
+    await delay(180);
+    assert.equal(ui.json().list_ul_class, 'jquery-list');
+    setMode(ui, 'card'); await delay(180);
+    assert.equal(ui.input('field_card').value, '13');
+    assert.equal(ui.json().card, 13);
   } finally { ui.dom.window.close(); }
 });

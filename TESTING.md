@@ -1,4 +1,4 @@
-# Validation for 3.3.4
+# Validation for 3.4.0
 
 ## WordPress database integration
 
@@ -8,9 +8,9 @@
 wp eval-file /absolute/path/to/as-alphablock/tests/run-wordpress.php --use-include --path=/absolute/path/to/disposable-wordpress
 ```
 
-The suite uses real WordPress query code and a database. Only the external ACF getter, theme wrapper helper and card renderer are substituted. The supplied 3.2.1 template is preserved in `tests/fixtures/template-3.2.1.php` as the compatibility reference.
+The suite uses real WordPress query code and a database. Only the external ACF getter, theme wrapper helper and card renderer are substituted. The supplied 3.2.1 template is preserved in `tests/fixtures/template-3.2.1.php` as the original compatibility reference. The released 3.3.5 template is also preserved, with only its two helper include paths adjusted. Its unchanged args.php/tokens.php helpers are hash-checked against the release snapshot.
 
-The release was checked using PHP 8.5.7, WordPress 7.1.4 and the official SQLite Database Integration drop-in. It passes **142 assertions**, including **40 complete legacy render comparisons** and a deterministic legacy random-order comparison.
+The release was checked using PHP 8.5.7, WordPress 7.1.4 and the official SQLite Database Integration drop-in. It passes **274 assertions**, including **40 complete 3.2.1 render comparisons**, **80 complete 3.3.5 comparisons** (missing/explicit Card), and a deterministic legacy random-order comparison.
 
 Coverage includes:
 
@@ -22,6 +22,8 @@ Coverage includes:
 - Empty NLP input, preservation of actual requests, and cleanup of the exact generated system prompt.
 - Default-off debug output, final resolved arguments, per-step Build dumps, runtime overrides and unchanged selected cards.
 - All-in-one-row sizing for -1, including manual inclusions, Build, empty results, carousel copies and 20 additional fixed/invalid-width render comparisons against 3.2.1.
+- Default/invalid/explicit Card compatibility with 3.3.5 and no mode inference from a template named List.
+- List post selection, classes, decorative icons, permalink/title escaping, hidden-post protection, empty results, Build/manual selections, debug and absence of card/carousel markup.
 
 ## Editor and ACF schema
 
@@ -30,9 +32,15 @@ npm ci --prefix tests
 npm test --prefix tests
 ```
 
-Nine tests use jsdom and the actual editor synchronization script. They verify all existing saved ACF keys/names/types, tab arrangement, the new filter choice, token spelling/case, numeric-control token preservation, unrelated field edits, JSON-to-field synchronization preservation of the JSON-only debug flag, and saving -1 for posts per row. `tests/fixtures/fields-3.2.0.json` is the unchanged repository field-group baseline.
+Sixteen tests use jsdom and the actual editor synchronization script. They verify all existing saved ACF keys/names/types, tab arrangement, the new filter choice, token spelling/case, numeric-control token preservation, unrelated field edits, JSON-to-field synchronization, preservation of the JSON-only debug flag, saving -1 for posts per row, Card/List defaults and conditional definitions, mode switching, inactive settings, JSON edits, partial deployment, and Select2-style jQuery changes. `tests/fixtures/fields-3.2.0.json` is the unchanged repository field-group baseline.
 
 These tests simulate field markup and do not load ACF PRO's widgets. They do not replace checking the real block editor on staging.
+
+## Real-browser ACF check
+
+Playwright was used against a disposable WordPress page rendering the Show Posts controls with official ACF **6.8.11**. Card was selected by default, including with a card template named List. Switching to List hid the card inputs and showed all four optional text inputs. Editing classes/icon and switching back preserved both sets of settings. Guidance remained below the controls. A Select2-style jQuery change was also checked against the real loaded ACF/Select2 widget and updated the JSON.
+
+This check uses ACF's shared field types in an isolated form. It does not load the production ACF PRO block editor, the actual theme's CSS or Font Awesome fonts. The full staging checks below still apply. Screenshot artifacts are kept locally under ignored `output/playwright/`.
 
 ## Package
 

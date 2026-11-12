@@ -3,10 +3,11 @@
  * File: AlphaBlock
  *
  * @subpackage Blocks
- * @version    3.3.4
+ * @version    3.4.0
  * @author     Chris Chatterton
  *
  * Release Notes:
+ * 3.4.0 20261112: Add opt-in plain List output; default Card output is retained.
  * 3.3.4 20261105: Treat posts_per_row -1 as all selected posts in one row.
  * 3.3.3 20261030: Add opt-in JSON debug flag for final query arguments.
  * 3.3.0 20261030: Extract tokens/args, add waterfall Build and Post Attributes.
@@ -89,6 +90,11 @@ $block_defaults = [
 	'sort_order'    => 'ASC',
 	'query_logic'   => 'None',
 	'filters'       => [],
+	'show_as'       => 'card',
+	'list_ul_class' => '',
+	'list_li_class' => '',
+	'list_a_class'  => '',
+	'list_icon'     => '',
 	'posts_per_row' => 3,
 	'card'          => null,
 	'layout'        => 'Wrap',
@@ -484,11 +490,20 @@ $block_values['posts_per_row'] = $posts_per_row === -1
 // Debug is opt-in through JSON (or a runtime override), never inferred as truthy.
 $block_values['debug'] = in_array($block_values['debug'], [1, '1'], true) ? 1 : 0;
 
+// Only an explicit List selection activates the new renderer.
+$is_list = is_string($block_values['show_as']) && strtolower(trim($block_values['show_as'])) === 'list';
+$block_values['show_as'] = $is_list ? 'list' : 'card';
+foreach (['list_ul_class', 'list_li_class', 'list_a_class', 'list_icon'] as $list_key) {
+	$block_values[$list_key] = is_scalar($block_values[$list_key])
+		? trim((string) $block_values[$list_key])
+		: '';
+}
+
 /* The selected Card post supplies the slug used by Magic_Card below. */
 $card_id = (int) $block_values['card'];
 
 $card_post =
-	$card_id > 0
+	!$is_list && $card_id > 0
 		? get_post($card_id)
 		: null;
 
@@ -535,10 +550,9 @@ if ($is_preview) {
 		</span>
 
 		<span>
-			Card:
+			<?php echo ($is_list ? 'Show as:' : 'Card:') . "\n"; ?>
 			<?= esc_html(
-				$preview_card
-					?: 'Not selected'
+				$is_list ? 'List' : ($preview_card ?: 'Not selected')
 			); ?>
 		</span>
 
@@ -593,7 +607,7 @@ if ($block_values['header'] !== '') {
 	);
 }
 
-echo '<div class="card-wrapper">';
+echo '<div class="' . ($is_list ? 'list-wrapper' : 'card-wrapper') . '">';
 echo '%%content%%';
 echo '</div>';
 echo "  </div>\n";
@@ -673,6 +687,41 @@ if ($query_plan['mode'] === 'build') {
 	if (!empty($block_values['include_posts'])) {
 		$pids = array_values(array_unique(array_merge($pids, $block_values['include_posts'])));
 	}
+}
+
+/* List rendering shares post selection, but does not use card templates/layouts. */
+if ($is_list) {
+	$class_attribute = static function ($classes) {
+		return $classes !== '' ? ' class="' . esc_attr($classes) . '"' : '';
+	};
+	$ul_attributes = $class_attribute($block_values['list_ul_class']);
+	$li_attributes = $class_attribute($block_values['list_li_class']);
+	$a_attributes = $class_attribute($block_values['list_a_class']);
+	$icon = '';
+	if ($block_values['list_icon'] !== '') {
+		$ul_attributes .= ' style="list-style:none;"';
+		$icon = '<i class="' . esc_attr($block_values['list_icon']) . '" aria-hidden="true"></i> ';
+	}
+	$content = '<ul' . $ul_attributes . '>';
+	foreach ($pids as $pid) {
+		// Match Magic Card's published-only visibility for manual inclusions too.
+		if (get_post_status($pid) !== 'publish') {
+			continue;
+		}
+		$url = get_permalink($pid);
+		if (!$url) {
+			continue;
+		}
+		$content .= '<li' . $li_attributes . '>' . $icon
+			. '<a href="' . esc_url($url) . '"' . $a_attributes . '>'
+			. esc_html(get_the_title($pid)) . '</a></li>';
+	}
+	$content .= '</ul>';
+	// Callback replacement preserves literal dollar signs in titles/classes.
+	echo preg_replace_callback('/%%content%%/', static function () use ($content) {
+		return $content;
+	}, $wrapper, 1);
+	return;
 }
 
 /* Convert desktop/mobile layout settings into CSS classes and row width. */

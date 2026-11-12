@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.4.0 — 2026-11-12
+
+- Add a Show as Card/List toggle, with Card as the default for missing or invalid settings.
+- Keep existing Card query/rendering behaviour and output; a card template named List remains a card template.
+- Add four optional List settings for UL, LI and A classes and full Font Awesome icon classes.
+- Render plain published-post title/permalink lists without card layouts or carousel copies.
+- Preserve both modes’ settings through switches, reopened hidden controls, JSON edits and partial schema deployment.
+- Handle ACF/Select2 synthetic changes so card selections stay synchronized.
+- Update system-prompt guidance while retaining recognition of the original generated prompt.
+- Compare Card renders against both supplied 3.2.1 and released 3.3.5; add List and browser checks.
+
 ## 3.3.5 — 2026-11-05
 
 - Move Posts per row guidance out of the individual input and into a full-width message below all Show Posts controls.

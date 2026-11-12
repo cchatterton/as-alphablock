@@ -4,7 +4,8 @@
  * Kept separate from the author's NLP request textarea. This helper returns
  * instructions only; the component does not itself make AI/API requests.
  */
-function alphablock_get_prompt() {
+/** Original text retained to recognize exactly what v3.3.0 prefilled. */
+function alphablock_get_legacy_prompt() {
 	$prompt = <<<'PROMPT'
 Help me configure an AlphaSys AlphaBlock. Ask for missing field names, post type keys, card IDs or relationship targets rather than inventing them. Once the requirements are clear, return one valid JSON object using these existing property names:
 
@@ -40,5 +41,36 @@ Family uses whose_family as the reference ID, or 0 for the hierarchy root. famil
 
 Tokens are replaced once in string values before querying: %me% and %me->ID% are the owning post ID; %me-slug% and legacy %me->slug% are its slug; %mine->meta_key% reads named owner metadata (first item for arrays, empty if absent). Legacy %mine% reads the filter's metadata key in a filter value, or the owning ID in whose_family. Unknown tokens remain literal. Use ID-valued tokens in whose_family. Keep tokens in the saved JSON rather than replacing them with example values.
 PROMPT;
+	return $prompt;
+}
+
+/** Current system instructions; the public customization filter is retained. */
+function alphablock_get_prompt() {
+	$prompt = str_replace(
+		'  "posts_per_row": 3,',
+		'  "show_as": "card",' . "\n"
+		. '  "list_ul_class": "",' . "\n"
+		. '  "list_li_class": "",' . "\n"
+		. '  "list_a_class": "",' . "\n"
+		. '  "list_icon": "",' . "\n"
+		. '  "posts_per_row": 3,',
+		alphablock_get_legacy_prompt()
+	);
+	$prompt .= "\n\nshow_as defaults to card; missing or invalid values retain existing Card rendering. "
+		. "Choose list only when explicitly requested. List links each published post title to its permalink and does not require a card. "
+		. "list_ul_class, list_li_class, list_a_class and list_icon are optional strings. "
+		. "list_icon is a full Font Awesome class list, such as fa-solid fa-chevron-right; do not supply HTML. "
+		. "List ignores card layouts and has no carousel duplicate items. Retain both modes' saved settings when switching. "
+		. "In Card mode, posts_per_row -1 fits all selected posts in one row. debug defaults to 0; do not enable it automatically.";
 	return apply_filters('alphablock_prompt', $prompt);
+}
+
+/** Recognize exact generated text only, including the original 3.3.0 prompt. */
+function alphablock_is_system_prompt($value) {
+	$legacy = alphablock_get_legacy_prompt();
+	return is_string($value) && in_array(trim($value), array_map('trim', [
+		$legacy,
+		apply_filters('alphablock_prompt', $legacy),
+		alphablock_get_prompt(),
+	]), true);
 }

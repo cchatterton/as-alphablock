@@ -337,6 +337,25 @@
             "selected": 0
         },
         {
+            "key": "field_alphablock_show_as",
+            "label": "Show as",
+            "name": "show_as",
+            "type": "button_group",
+            "wrapper": {
+                "width": "100",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "card": "Card",
+                "list": "List"
+            },
+            "allow_null": 0,
+            "default_value": "card",
+            "layout": "horizontal",
+            "return_format": "value"
+        },
+        {
             "key": "field_posts_per_row",
             "label": "Posts per row",
             "name": "posts_per_row",
@@ -350,7 +369,16 @@
             "min": -1,
             "max": 12,
             "step": "",
-            "instructions": ""
+            "instructions": "",
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_alphablock_show_as",
+                        "operator": "==",
+                        "value": "card"
+                    }
+                ]
+            ]
         },
         {
             "key": "field_card",
@@ -373,7 +401,16 @@
             "allow_null": 0,
             "ui": 1,
             "bidirectional": 0,
-            "bidirectional_target": []
+            "bidirectional_target": [],
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_alphablock_show_as",
+                        "operator": "==",
+                        "value": "card"
+                    }
+                ]
+            ]
         },
         {
             "key": "field_layout",
@@ -396,7 +433,16 @@
             "allow_null": 1,
             "ui": 0,
             "ajax": 0,
-            "placeholder": ""
+            "placeholder": "",
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_alphablock_show_as",
+                        "operator": "==",
+                        "value": "card"
+                    }
+                ]
+            ]
         },
         {
             "key": "field_mobile_layout",
@@ -419,7 +465,16 @@
             "allow_null": 1,
             "ui": 0,
             "ajax": 0,
-            "placeholder": ""
+            "placeholder": "",
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_alphablock_show_as",
+                        "operator": "==",
+                        "value": "card"
+                    }
+                ]
+            ]
         },
         {
             "key": "field_show_links",
@@ -432,6 +487,11 @@
                         "field": "field_layout",
                         "operator": "==",
                         "value": "Wrap"
+                    },
+                    {
+                        "field": "field_alphablock_show_as",
+                        "operator": "==",
+                        "value": "card"
                     }
                 ]
             ],
@@ -453,6 +513,110 @@
             "custom_choice_button_text": "Add new choice"
         },
         {
+            "key": "field_alphablock_list_ul_class",
+            "label": "UL class",
+            "name": "list_ul_class",
+            "type": "text",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_alphablock_show_as",
+                        "operator": "==",
+                        "value": "list"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "25",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_alphablock_list_li_class",
+            "label": "LI class",
+            "name": "list_li_class",
+            "type": "text",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_alphablock_show_as",
+                        "operator": "==",
+                        "value": "list"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "25",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_alphablock_list_a_class",
+            "label": "A class",
+            "name": "list_a_class",
+            "type": "text",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_alphablock_show_as",
+                        "operator": "==",
+                        "value": "list"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "25",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_alphablock_list_icon",
+            "label": "Font Awesome icon",
+            "name": "list_icon",
+            "type": "text",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_alphablock_show_as",
+                        "operator": "==",
+                        "value": "list"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "25",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "fa-solid fa-chevron-right",
+            "prepend": "",
+            "append": ""
+        },
+        {
             "key": "field_alphablock_show_posts_help",
             "label": "Show posts guidance",
             "name": "",
@@ -462,7 +626,7 @@
                 "class": "",
                 "id": ""
             },
-            "message": "<p><strong>Posts per row:</strong> use <code>-1</code> to put all selected posts in one row, or 1–12 for a fixed number per row.</p>",
+            "message": "<p><strong>Show as:</strong> Card uses the selected card template and existing layout controls. List displays each selected post title linked to its permalink. Switching modes keeps both sets of settings.</p>\n<p><strong>Card — Posts per row:</strong> use <code>-1</code> to put all selected posts in one row, or 1–12 for a fixed number per row.</p>\n<p><strong>List:</strong> UL class, LI class, A class and Font Awesome icon are optional. Enter space-separated class names. For an icon, enter its full Font Awesome classes, for example <code>fa-solid fa-chevron-right</code>. An icon replaces the normal bullet; without one, normal list bullets remain. The theme must already load Font Awesome. Card layout settings and carousel copies do not apply to List.</p>",
             "new_lines": "",
             "esc_html": 0
         },
@@ -687,5 +851,5 @@
         ]
     ],
     "active": true,
-    "modified": 1793867416
+    "modified": 1794453627
 }

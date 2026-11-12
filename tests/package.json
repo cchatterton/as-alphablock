@@ -1,6 +1,11 @@
 {
   "name": "alphablock-editor-tests",
   "private": true,
-  "scripts": { "test": "node --test editor.test.cjs" },
-  "devDependencies": { "jsdom": "30.1.3" }
+  "scripts": {
+    "test": "node --test editor.test.cjs"
+  },
+  "devDependencies": {
+    "jsdom": "30.1.3",
+    "jquery": "3.7.1"
+  }
 }

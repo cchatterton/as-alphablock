@@ -15,8 +15,14 @@ add_filter('acf/load_value/key=field_prompt', static function ($value) {
 	if ($value === null || $value === false) {
 		return '';
 	}
-	if (is_string($value) && trim($value) === trim(alphablock_get_prompt())) {
-		return '';
+	if (is_string($value)) {
+		// Remain usable while a file-by-file deployment still has the old helper.
+		$is_system_prompt = function_exists('alphablock_is_system_prompt')
+			? alphablock_is_system_prompt($value)
+			: trim($value) === trim(alphablock_get_prompt());
+		if ($is_system_prompt) {
+			return '';
+		}
 	}
 	return $value;
 });
@@ -59,6 +65,11 @@ add_action('admin_footer', function () {
 				key: 'field_query_logic_q',
 				type: 'nullable'
 			},
+			show_as: { key: 'field_alphablock_show_as', type: 'display_mode' },
+			list_ul_class: { key: 'field_alphablock_list_ul_class', type: 'string' },
+			list_li_class: { key: 'field_alphablock_list_li_class', type: 'string' },
+			list_a_class: { key: 'field_alphablock_list_a_class', type: 'string' },
+			list_icon: { key: 'field_alphablock_list_icon', type: 'string' },
 			posts_per_row: {
 				key: 'field_posts_per_row',
 				type: 'number'
@@ -97,6 +108,11 @@ add_action('admin_footer', function () {
 			}
 		};
 
+		var MODE_FIELDS = {
+			card: ['posts_per_row', 'card', 'layout', 'mobile_layout', 'show_links'],
+			list: ['list_ul_class', 'list_li_class', 'list_a_class', 'list_icon']
+		};
+
 		var FILTER_MAP = {
 			filter_type: 'field_filters_filter_type',
 			key: 'field_filters_key',
@@ -123,7 +139,9 @@ add_action('admin_footer', function () {
 					fieldsTimer: null,
 					jsonTimer: null,
 					tokenValues: {},
-					debug: 0
+					debug: 0,
+					showAs: 'card',
+					modeValues: {}
 				};
 
 				blockStates.set(block, state);
@@ -237,6 +255,9 @@ add_action('admin_footer', function () {
 
 		function normalizeValue(type, value) {
 			switch (type) {
+				case 'display_mode':
+					return typeof value === 'string' && value.trim().toLowerCase() === 'list' ? 'list' : 'card';
+
 				case 'number':
 				return toInteger(value, null);
 
@@ -315,7 +336,10 @@ add_action('admin_footer', function () {
 				);
 			}
 
-			if (definition.type === 'array') {
+			if (definition.type === 'display_mode') {
+				var checkedMode = inputArea.querySelector('input[type="radio"]:checked');
+				value = checkedMode ? checkedMode.value : 'card';
+			} else if (definition.type === 'array') {
 				value = Array.from(
 					inputArea.querySelectorAll(
 						'input[type="checkbox"]:checked'
@@ -408,7 +432,14 @@ add_action('admin_footer', function () {
 		}
 
 		function readBlock(block) {
+			var state = getState(block);
 			var data = {
+				show_as: findField(block, FIELD_MAP.show_as.key)
+					? readField(block, FIELD_MAP.show_as) : state.showAs,
+				list_ul_class: readField(block, FIELD_MAP.list_ul_class),
+				list_li_class: readField(block, FIELD_MAP.list_li_class),
+				list_a_class: readField(block, FIELD_MAP.list_a_class),
+				list_icon: readField(block, FIELD_MAP.list_icon),
 				header_level: readField(
 					block,
 					FIELD_MAP.header_level
@@ -476,12 +507,18 @@ add_action('admin_footer', function () {
 				),
 				debug: getState(block).debug
 			};
+			// Hidden ACF controls can be disabled or reinitialized. Keep their saved
+			// values until the author explicitly edits the corresponding control.
+			Object.keys(state.modeValues).forEach(function (name) {
+				data[name] = state.modeValues[name];
+			});
 			// Typed ACF controls cannot represent every JSON token (e.g. a range).
 			// Keep those raw values until the author explicitly edits that field.
 			var tokenValues = getState(block).tokenValues;
 			Object.keys(tokenValues).forEach(function (name) {
 				data[name] = tokenValues[name];
 			});
+			state.showAs = normalizeValue('display_mode', data.show_as);
 			return data;
 		}
 
@@ -505,6 +542,34 @@ add_action('admin_footer', function () {
 			state.tokenValues = remembered;
 			// JSON-only option: retain it without adding an ACF control.
 			state.debug = data.debug === 1 || data.debug === '1' ? 1 : 0;
+			state.showAs = normalizeValue('display_mode', data.show_as);
+			state.modeValues = {};
+			if (hasOwn(data, 'show_as') || MODE_FIELDS.list.some(function (name) { return hasOwn(data, name); })) {
+				MODE_FIELDS.card.concat(MODE_FIELDS.list).forEach(function (name) {
+					if (hasOwn(data, name)) {
+						state.modeValues[name] = data[name];
+					}
+				});
+			}
+
+		}
+
+		function restoreModeFields(block, data) {
+			var state = getState(block);
+			data = data || Object.assign({ show_as: state.showAs }, state.modeValues);
+			var names = ['show_as'].concat(MODE_FIELDS[normalizeValue('display_mode', data.show_as)]);
+			var wasApplying = state.applyingJson;
+			state.applyingJson = true;
+			try {
+				names.forEach(function (name) {
+					if (hasOwn(data, name) && findField(block, FIELD_MAP[name].key) &&
+						JSON.stringify(readField(block, FIELD_MAP[name])) !== JSON.stringify(data[name])) {
+						setOrdinaryField(block, FIELD_MAP[name], data[name]);
+					}
+				});
+			} finally {
+				state.applyingJson = wasApplying;
+			}
 		}
 
 		function getJsonTextarea(block) {
@@ -664,6 +729,15 @@ add_action('admin_footer', function () {
 			var inputArea = findFieldInput(fieldElement);
 
 			if (!inputArea) {
+				return;
+			}
+
+			if (definition.type === 'display_mode') {
+				var mode = normalizeValue('display_mode', value);
+				inputArea.querySelectorAll('input[type="radio"]').forEach(function (radio) {
+					radio.checked = radio.value === mode;
+					dispatchFieldEvents(radio);
+				});
 				return;
 			}
 
@@ -1044,8 +1118,12 @@ add_action('admin_footer', function () {
 			Object.keys(FIELD_MAP).forEach(function (name) {
 				if (FIELD_MAP[name].key === key) {
 					delete state.tokenValues[name];
+					delete state.modeValues[name];
 				}
 			});
+			if (key === FIELD_MAP.show_as.key) {
+				restoreModeFields(block, readBlock(block));
+			}
 			if (key === 'field_filters' || key.indexOf('field_filters_') === 0) {
 				delete state.tokenValues.filters;
 			}
@@ -1079,6 +1157,14 @@ add_action('admin_footer', function () {
 				true
 			);
 
+			// Select2/ACF can emit jQuery-only changes. Native changes already reach
+			// the capturing listener above, so handle only synthetic events here.
+			if (window.jQuery) {
+				window.jQuery(block).on('change.alphablockJson', function (event) {
+					if (!event.originalEvent) { handleFieldEvent(event); }
+				});
+			}
+
 			var jsonTextarea = getJsonTextarea(block);
 			try {
 				var initialData = JSON.parse(jsonTextarea.value);
@@ -1108,10 +1194,12 @@ add_action('admin_footer', function () {
 			);
 
 			window.setTimeout(function () {
+				if (Object.keys(getState(block).modeValues).length) { restoreModeFields(block); }
 				writeFieldsToJson(block);
 			}, 0);
 
 			window.setTimeout(function () {
+				if (Object.keys(getState(block).modeValues).length) { restoreModeFields(block); }
 				writeFieldsToJson(block);
 			}, 250);
 		}
