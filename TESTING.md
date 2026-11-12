@@ -1,4 +1,4 @@
-# Validation for 3.4.0
+# Validation for 3.4.1
 
 ## WordPress database integration
 
@@ -10,7 +10,7 @@ wp eval-file /absolute/path/to/as-alphablock/tests/run-wordpress.php --use-inclu
 
 The suite uses real WordPress query code and a database. Only the external ACF getter, theme wrapper helper and card renderer are substituted. The supplied 3.2.1 template is preserved in `tests/fixtures/template-3.2.1.php` as the original compatibility reference. The released 3.3.5 template is also preserved, with only its two helper include paths adjusted. Its unchanged args.php/tokens.php helpers are hash-checked against the release snapshot.
 
-The release was checked using PHP 8.5.7, WordPress 7.1.4 and the official SQLite Database Integration drop-in. It passes **274 assertions**, including **40 complete 3.2.1 render comparisons**, **80 complete 3.3.5 comparisons** (missing/explicit Card), and a deterministic legacy random-order comparison.
+The release was checked using PHP 8.5.7, WordPress 7.1.4 and the official SQLite Database Integration drop-in. It passes **285 assertions**, including **40 complete 3.2.1 render comparisons**, **80 complete 3.3.5 comparisons** (missing/explicit Card), and a deterministic legacy random-order comparison. The added checks cover numeric H1–H6 headings, span/p tags, optional classes, safe fallback for invalid tag and class input, and previous prompt cleanup.
 
 Coverage includes:
 
@@ -32,7 +32,7 @@ npm ci --prefix tests
 npm test --prefix tests
 ```
 
-Sixteen tests use jsdom and the actual editor synchronization script. They verify all existing saved ACF keys/names/types, tab arrangement, the new filter choice, token spelling/case, numeric-control token preservation, unrelated field edits, JSON-to-field synchronization, preservation of the JSON-only debug flag, saving -1 for posts per row, Card/List defaults and conditional definitions, mode switching, inactive settings, JSON edits, partial deployment, and Select2-style jQuery changes. `tests/fixtures/fields-3.2.0.json` is the unchanged repository field-group baseline.
+Seventeen tests use jsdom and the actual editor synchronization script. They verify existing ACF keys/names, the intentional Header Level type change, numeric heading preservation, span/class editing, tab arrangement, the new filter choice, token spelling/case, numeric-control token preservation, unrelated field edits, JSON-to-field synchronization, preservation of the JSON-only debug flag, saving -1 for posts per row, Card/List defaults and conditional definitions, mode switching, inactive settings, JSON edits, partial deployment, and Select2-style jQuery changes. `tests/fixtures/fields-3.2.0.json` is the unchanged repository field-group baseline.
 
 These tests simulate field markup and do not load ACF PRO's widgets. They do not replace checking the real block editor on staging.
 

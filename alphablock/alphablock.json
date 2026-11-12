@@ -18,18 +18,30 @@
         },
         {
             "key": "field_header_level",
-            "label": "Header Level",
+            "label": "Header Tag",
             "name": "header_level",
-            "type": "range",
+            "type": "select",
             "wrapper": {
-                "width": "20",
+                "width": "25",
                 "class": "",
                 "id": ""
             },
-            "default_value": 2,
-            "min": 1,
-            "max": 4,
-            "step": ""
+            "choices": {
+                "1": "H1",
+                "2": "H2",
+                "3": "H3",
+                "4": "H4",
+                "5": "H5",
+                "6": "H6",
+                "span": "span",
+                "p": "p"
+            },
+            "default_value": "2",
+            "return_format": "value",
+            "multiple": 0,
+            "allow_null": 0,
+            "ui": 0,
+            "ajax": 0
         },
         {
             "key": "field_header",
@@ -37,10 +49,27 @@
             "name": "header",
             "type": "text",
             "wrapper": {
-                "width": "80",
+                "width": "50",
                 "class": "",
                 "id": ""
             },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_header_class",
+            "label": "Header Class",
+            "name": "header_class",
+            "type": "text",
+            "wrapper": {
+                "width": "25",
+                "class": "",
+                "id": ""
+            },
+            "instructions": "Optional space-separated CSS classes for the header element.",
             "default_value": "",
             "maxlength": "",
             "placeholder": "",

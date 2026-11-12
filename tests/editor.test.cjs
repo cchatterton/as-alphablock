@@ -56,9 +56,32 @@ test('existing saved field keys, names and types are preserved', () => {
     const current = fields.find(field => field.key === old.key);
     assert.ok(current, old.key);
     assert.equal(current.name, old.name);
-    assert.equal(current.type, old.type);
+    assert.equal(current.type, old.key === 'field_header_level' ? 'select' : old.type);
     if (old.choices) assert.deepEqual(Object.keys(current.choices).filter(key => key !== 'Post'), Object.keys(old.choices));
   }
+});
+test('header tag selection preserves numeric levels and writes optional classes', async () => {
+  const field = group.fields.find(item => item.key === 'field_header_level');
+  assert.deepEqual(Object.keys(field.choices), ['1', '2', '3', '4', '5', '6', 'span', 'p']);
+  assert.equal(group.fields.find(item => item.key === 'field_header_class').name, 'header_class');
+  const ui = editor({ header_level: 4, header: 'Existing heading' });
+  try {
+    await delay(380);
+    assert.equal(ui.input('field_header_level').value, '4');
+    assert.equal(ui.json().header_level, 4);
+    assert.equal(ui.json().header_class, '');
+    ui.input('field_header_level').value = 'span';
+    ui.input('field_header_level').dispatchEvent(new ui.dom.window.Event('change', { bubbles: true }));
+    ui.input('field_header_class').value = 'feature-heading large';
+    ui.input('field_header_class').dispatchEvent(new ui.dom.window.Event('input', { bubbles: true }));
+    await delay(180);
+    assert.equal(ui.json().header_level, 'span');
+    assert.equal(ui.json().header_class, 'feature-heading large');
+    ui.input('field_header_level').value = '6';
+    ui.input('field_header_level').dispatchEvent(new ui.dom.window.Event('change', { bubbles: true }));
+    await delay(180);
+    assert.equal(ui.json().header_level, 6);
+  } finally { ui.dom.window.close(); }
 });
 test('manual selections share one tab, with explanations after the controls', () => {
   const fields = group.fields;

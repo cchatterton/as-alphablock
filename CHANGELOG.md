@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.4.1 — 2026-11-12
+
+- Replace the Block Title Header Level slider with a Header Tag select for H1–H6, span and p.
+- Add an optional Header Class input for space-separated CSS classes.
+- Preserve numeric `header_level` values in existing ACF fields and saved JSON; existing headings render unchanged.
+- Synchronize the new inputs with JSON and safely render the chosen element and class list.
+
 ## 3.4.0 — 2026-11-12
 
 - Add a Show as Card/List toggle, with Card as the default for missing or invalid settings.

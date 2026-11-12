@@ -44,8 +44,8 @@ PROMPT;
 	return $prompt;
 }
 
-/** Current system instructions; the public customization filter is retained. */
-function alphablock_get_prompt() {
+/** Preserve recognition of the exact 3.4.0 generated instructions. */
+function alphablock_get_previous_prompt() {
 	$prompt = str_replace(
 		'  "posts_per_row": 3,',
 		'  "show_as": "card",' . "\n"
@@ -62,6 +62,18 @@ function alphablock_get_prompt() {
 		. "list_icon is a full Font Awesome class list, such as fa-solid fa-chevron-right; do not supply HTML. "
 		. "List ignores card layouts and has no carousel duplicate items. Retain both modes' saved settings when switching. "
 		. "In Card mode, posts_per_row -1 fits all selected posts in one row. debug defaults to 0; do not enable it automatically.";
+	return $prompt;
+}
+
+/** Current system instructions; the public customization filter is retained. */
+function alphablock_get_prompt() {
+	$prompt = str_replace(
+		'  "header": "",',
+		'  "header": "",' . "\n" . '  "header_class": "",',
+		alphablock_get_previous_prompt()
+	);
+	$prompt .= "\n\nheader_level accepts existing numeric levels 1–6, plus span or p for new tag choices. "
+		. "header_class is an optional space-separated CSS class list on the header element.";
 	return apply_filters('alphablock_prompt', $prompt);
 }
 
@@ -71,6 +83,8 @@ function alphablock_is_system_prompt($value) {
 	return is_string($value) && in_array(trim($value), array_map('trim', [
 		$legacy,
 		apply_filters('alphablock_prompt', $legacy),
+		alphablock_get_previous_prompt(),
+		apply_filters('alphablock_prompt', alphablock_get_previous_prompt()),
 		alphablock_get_prompt(),
 	]), true);
 }

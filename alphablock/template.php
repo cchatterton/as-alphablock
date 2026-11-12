@@ -3,10 +3,11 @@
  * File: AlphaBlock
  *
  * @subpackage Blocks
- * @version    3.4.0
+ * @version    3.4.1
  * @author     Chris Chatterton
  *
  * Release Notes:
+ * 3.4.1 20261112: Add selectable header tags and optional header classes.
  * 3.4.0 20261112: Add opt-in plain List output; default Card output is retained.
  * 3.3.4 20261105: Treat posts_per_row -1 as all selected posts in one row.
  * 3.3.3 20261030: Add opt-in JSON debug flag for final query arguments.
@@ -84,6 +85,7 @@ if (is_array($raw_json)) {
 $block_defaults = [
 	'header_level'  => 2,
 	'header'        => '',
+	'header_class'  => '',
 	'total_posts'   => 3,
 	'post_type'     => null,
 	'order_by'      => 'date',
@@ -406,16 +408,16 @@ $block_values = alphablock_replace_tokens($block_values, $alphablock_post_id);
  * Normalize configuration types and limits once. Later sections can then
  * use these values without checking every possible editor input shape.
  */
-$block_values['header_level'] = min(
-	6,
-	max(
-		1,
-		(int) $block_values['header_level']
-	)
-);
+$header_level = $block_values['header_level'];
+$block_values['header_tag'] = in_array($header_level, ['span', 'p'], true)
+	? $header_level
+	: 'h' . min(6, max(1, (int) $header_level));
 
 $block_values['header'] =
 	(string) $block_values['header'];
+
+$header_classes = preg_split('/\s+/', trim((string) $block_values['header_class']));
+$block_values['header_class'] = implode(' ', array_filter(array_map('sanitize_html_class', $header_classes)));
 
 $block_values['total_posts'] =
 	(int) $block_values['total_posts'];
@@ -601,8 +603,9 @@ printf(
 
 if ($block_values['header'] !== '') {
 	printf(
-		'<h%1$d>%2$s</h%1$d>',
-		$block_values['header_level'],
+		'<%1$s%2$s>%3$s</%1$s>',
+		$block_values['header_tag'],
+		$block_values['header_class'] !== '' ? ' class="' . esc_attr($block_values['header_class']) . '"' : '',
 		esc_html($block_values['header'])
 	);
 }

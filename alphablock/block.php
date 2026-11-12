@@ -39,10 +39,14 @@ add_action('admin_footer', function () {
 		var FIELD_MAP = {
 			header_level: {
 				key: 'field_header_level',
-				type: 'number'
+				type: 'header_tag'
 			},
 			header: {
 				key: 'field_header',
+				type: 'string'
+			},
+			header_class: {
+				key: 'field_header_class',
 				type: 'string'
 			},
 			total_posts: {
@@ -255,6 +259,11 @@ add_action('admin_footer', function () {
 
 		function normalizeValue(type, value) {
 			switch (type) {
+				case 'header_tag':
+					if (value === 'span' || value === 'p') { return value; }
+					var level = toInteger(value, 2);
+					return Math.min(6, Math.max(1, level));
+
 				case 'display_mode':
 					return typeof value === 'string' && value.trim().toLowerCase() === 'list' ? 'list' : 'card';
 
@@ -447,6 +456,10 @@ add_action('admin_footer', function () {
 				header: readField(
 					block,
 					FIELD_MAP.header
+				),
+				header_class: readField(
+					block,
+					FIELD_MAP.header_class
 				),
 				total_posts: readField(
 					block,

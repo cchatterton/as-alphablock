@@ -165,6 +165,16 @@ $cases['carousel markup'] = [array_replace($base, ['layout' => 'Carousel', 'mobi
 foreach ($cases as $name => [$values, $options]) {
 	ab_same(ab_render($old, $values, $options), ab_render($new, $values, $options), '3.2.1 compatibility: ' . $name);
 }
+foreach ([1, 2, 3, 4, 5, 6] as $level) {
+	$rendered = ab_render($new, array_replace($base, ['header_level' => $level]));
+	ab_same(true, str_contains($rendered['html'], '<h' . $level . '>Existing heading</h' . $level . '>'), 'numeric header level ' . $level);
+}
+foreach (['span', 'p'] as $tag) {
+	$rendered = ab_render($new, array_replace($base, ['header_level' => $tag, 'header_class' => 'feature-heading large']));
+	ab_same(true, str_contains($rendered['html'], '<' . $tag . ' class="feature-heading large">Existing heading</' . $tag . '>'), 'header tag and classes ' . $tag);
+}
+$safe_header = ab_render($new, array_replace($base, ['header_level' => 'script', 'header_class' => 'feature" onclick="alert(1)']));
+ab_same(true, str_contains($safe_header['html'], '<h1 class="feature onclickalert1">Existing heading</h1>'), 'invalid tag and classes are safe');
 // Make the database random candidate order stable, then verify the PHP shuffle.
 $stable_rand = static function ($order) { return str_replace('RAND()', 'ID ASC', $order); };
 add_filter('posts_orderby', $stable_rand);
@@ -390,6 +400,8 @@ ab_same(html_entity_decode(get_the_title($special), ENT_QUOTES | ENT_HTML5, 'UTF
 ab_same(0, $list->getElementsByTagName('b')->length, 'title markup is rendered as text');
 ab_same(get_permalink($special), $list->getElementsByTagName('a')->item(0)->getAttribute('href'), 'special title still uses its real permalink');
 ab_same('', apply_filters('acf/load_value/key=field_prompt', alphablock_get_legacy_prompt()), 'old generated prompt is still cleared after system instructions evolve');
+ab_same('', apply_filters('acf/load_value/key=field_prompt', alphablock_get_previous_prompt()), '3.4.0 generated prompt is still cleared');
 ab_same(true, str_contains(alphablock_get_prompt(), '"show_as": "card"'), 'system prompt documents Card default');
 ab_same(true, str_contains(alphablock_get_prompt(), '"list_icon": ""'), 'system prompt documents optional list icon');
+ab_same(true, str_contains(alphablock_get_prompt(), '"header_class": ""'), 'system prompt documents optional header classes');
 echo 'PASS: ' . $GLOBALS['ab_checks'] . " checks, including " . count($cases) . " complete 3.2.1 render comparisons.\n";
