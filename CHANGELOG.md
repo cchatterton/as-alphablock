@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.4.2 — 2026-11-12
+
+- Move Header Class guidance from the input instructions to a full-width Block Title message below the controls.
+
 ## 3.4.1 — 2026-11-12
 
 - Replace the Block Title Header Level slider with a Header Tag select for H1–H6, span and p.

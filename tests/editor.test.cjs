@@ -64,6 +64,11 @@ test('header tag selection preserves numeric levels and writes optional classes'
   const field = group.fields.find(item => item.key === 'field_header_level');
   assert.deepEqual(Object.keys(field.choices), ['1', '2', '3', '4', '5', '6', 'span', 'p']);
   assert.equal(group.fields.find(item => item.key === 'field_header_class').name, 'header_class');
+  assert.ok(!group.fields.find(item => item.key === 'field_header_class').instructions);
+  const help = group.fields[group.fields.findIndex(item => item.key === 'field_header_class') + 1];
+  assert.equal(help.type, 'message');
+  assert.equal(help.wrapper.width, '100');
+  assert.ok(help.message.includes('space-separated CSS classes'));
   const ui = editor({ header_level: 4, header: 'Existing heading' });
   try {
     await delay(380);

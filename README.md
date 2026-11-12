@@ -2,16 +2,16 @@
 
 AlphaSys's ACF-based WordPress theme block for querying posts and rendering reusable Magic Card templates.
 
-## Version 3.4.1
+## Version 3.4.2
 
-Version 3.4.1 replaces the Block Title Header Level slider with a Header Tag select (H1–H6, span, p) and adds an optional Header Class input. Existing numeric `header_level` values remain selected and render the same heading. New span and p choices use the same JSON property; `header_class` defaults to empty. The existing Card/List renderer and Prompt tab remain available.
+Version 3.4.2 places the Block Title guidance in a full-width message below its controls. The Header Tag select (H1–H6, span, p) and optional Header Class input retain their 3.4.1 behaviour. Existing numeric `header_level` values remain selected and render the same heading.
 
 **Build changes behaviour:** it previously ran the base query. With filter rows it now fills a quota in filter priority order. Review existing blocks using Build before deployment. Existing saved JSON does not need a schema migration.
 
 ## Installation and upgrade
 
 1. Back up the currently deployed `blocks/alphablock/` folder and the content/configuration being edited.
-2. Download `as-alphablock-3.4.1.zip` from the GitHub release.
+2. Download `as-alphablock-3.4.2.zip` from the GitHub release.
 3. Extract the complete `alphablock/` folder into your active theme's `blocks/` directory, replacing the existing files. A complete installation needs all seven files. For a file-by-file upgrade from 3.3.5, follow the ordered five-file list below.
 4. Keep the shared AlphaSys theme loader that loads ACF JSON and registers `blocks/*/block.json`.
 5. Sync the AlphaBlock ACF field group from local JSON if the editor still shows the old layout. Its field-group key and saved field keys are preserved; its modification timestamp is updated. Do not use the old destructive ACF hard-reset snippet.
@@ -35,7 +35,7 @@ For rollback, restore the complete previous block folder. If you saved new Post 
 
 ## Block title
 
-Choose H1–H6, span or p under **Header Tag**. The first six choices keep the historical numeric `header_level` values (1–6), so saved blocks and JSON need no migration. Span and p save their tag names in that same property. **Header Class** accepts optional space-separated CSS classes and applies them to the title element; missing classes leave existing markup unchanged. Invalid tag values fall back to H1, matching the former numeric clamp for nonnumeric values. Header text remains escaped.
+Choose H1–H6, span or p under **Header Tag**. The first six choices keep the historical numeric `header_level` values (1–6), so saved blocks and JSON need no migration. Span and p save their tag names in that same property. **Header Class** accepts optional space-separated CSS classes and applies them to the title element; missing classes leave existing markup unchanged. Guidance appears below the complete Block Title controls. Invalid tag values fall back to H1, matching the former numeric clamp for nonnumeric values. Header text remains escaped.
 
 The pipeline is: load JSON and runtime overrides → resolve the owning post → replace tokens → normalize values → construct query arguments → execute queries → render cards. The editor preview remains a metadata summary and does not run card queries.
 

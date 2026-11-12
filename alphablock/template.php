@@ -3,10 +3,11 @@
  * File: AlphaBlock
  *
  * @subpackage Blocks
- * @version    3.4.1
+ * @version    3.4.2
  * @author     Chris Chatterton
  *
  * Release Notes:
+ * 3.4.2 20261112: Place Block Title guidance below the controls.
  * 3.4.1 20261112: Add selectable header tags and optional header classes.
  * 3.4.0 20261112: Add opt-in plain List output; default Card output is retained.
  * 3.3.4 20261105: Treat posts_per_row -1 as all selected posts in one row.

@@ -69,12 +69,25 @@
                 "class": "",
                 "id": ""
             },
-            "instructions": "Optional space-separated CSS classes for the header element.",
             "default_value": "",
             "maxlength": "",
             "placeholder": "",
             "prepend": "",
             "append": ""
+        },
+        {
+            "key": "field_alphablock_block_title_help",
+            "label": "Block title guidance",
+            "name": "",
+            "type": "message",
+            "wrapper": {
+                "width": "100",
+                "class": "",
+                "id": ""
+            },
+            "message": "<p><strong>Header Tag:</strong> choose H1–H6, span or p for the title element. <strong>Header Class:</strong> optional space-separated CSS classes for that element.</p>",
+            "new_lines": "",
+            "esc_html": 0
         },
         {
             "key": "field_tab_post_query",

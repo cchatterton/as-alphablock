@@ -1,4 +1,4 @@
-# Validation for 3.4.1
+# Validation for 3.4.2
 
 ## WordPress database integration
 
